@@ -1,0 +1,14 @@
+[package]
+name = "grout"
+version = "0.1.0"
+authors = ["tarkah <admin@tarkah.dev>"]
+edition = "2018"
+
+
+[dependencies]
+crossbeam-channel = "0.4"
+lazy_static = "1.4"
+
+[dependencies.winapi]
+version = "0.3"
+features = ["winuser", "wingdi", "libloaderapi", "errhandlingapi"]
