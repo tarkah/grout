@@ -4,6 +4,7 @@
 
 use std::mem;
 use std::ptr;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
@@ -34,6 +35,7 @@ use winapi::um::winuser::{
 };
 
 use crate::common::{get_work_area, Rect};
+use crate::grid::Grid;
 
 mod common;
 mod grid;
@@ -41,6 +43,7 @@ mod window;
 
 lazy_static! {
     static ref CHANNEL: (Sender<Message>, Receiver<Message>) = unbounded();
+    static ref GRID: Arc<Mutex<Grid>> = Arc::new(Mutex::new(Grid::default()));
 }
 
 enum Message {
@@ -179,16 +182,17 @@ fn spawn_picker_window(close_msg: Receiver<()>) {
         RegisterClassExW(&class);
 
         let work_area = get_work_area();
+        let dimensions = GRID.lock().unwrap().dimensions();
 
         let hwnd = CreateWindowExW(
             WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_COMPOSITED | WS_EX_TOOLWINDOW,
             class_name.as_ptr(),
             ptr::null(),
             WS_POPUP | WS_VISIBLE | WS_SYSMENU,
-            work_area.width / 2 - (48 * 2 + 6 * 3) / 2,
-            work_area.height / 2 - (48 * 2 + 6 * 3) / 2,
-            48 * 2 + 6 * 3,
-            48 * 2 + 6 * 3,
+            work_area.width / 2 - dimensions.0 as i32 / 2,
+            work_area.height / 2 - dimensions.1 as i32 / 2,
+            dimensions.0 as i32,
+            dimensions.1 as i32,
             ptr::null_mut(),
             ptr::null_mut(),
             hInstance,
@@ -252,8 +256,10 @@ fn spawn_highlighter_window(close_msg: Receiver<()>) {
 
         SetLayeredWindowAttributes(hwnd, 0, 107, LWA_ALPHA);
 
-        let window = Window::new(hwnd);
-        let _ = &CHANNEL.0.clone().send(Message::HighlighterWindow(window));
+        let _ = &CHANNEL
+            .0
+            .clone()
+            .send(Message::HighlighterWindow(Window(hwnd)));
 
         let mut msg = mem::zeroed();
         loop {
@@ -284,7 +290,7 @@ unsafe extern "system" fn callback(
     _dwmsEventTime: DWORD,
 ) {
     let sender = &CHANNEL.0.clone();
-    let _ = sender.send(Message::HighlightZone(Window::new(hwnd).rect()));
+    let _ = sender.send(Message::HighlightZone(Window(hwnd).rect()));
 }
 
 unsafe extern "system" fn callback2(
@@ -308,63 +314,64 @@ unsafe extern "system" fn callback3(
 
     match Msg {
         WM_PAINT => {
-            let mut paint = mem::zeroed();
+            GRID.lock().unwrap().draw(Window(hWnd));
+            // let mut paint = mem::zeroed();
 
-            let hdc = BeginPaint(hWnd, &mut paint);
+            // let hdc = BeginPaint(hWnd, &mut paint);
 
-            let mut rect: Rect = paint.rcPaint.into();
-            rect.x = 6;
-            rect.y = 6;
-            rect.width = 48;
-            rect.height = 48;
+            // let mut rect: Rect = paint.rcPaint.into();
+            // rect.x = 6;
+            // rect.y = 6;
+            // rect.width = 48;
+            // rect.height = 48;
 
-            FillRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 100, 148)));
-            FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
+            // FillRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 100, 148)));
+            // FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
 
-            let mut rect: Rect = paint.rcPaint.into();
-            rect.x = 60;
-            rect.y = 6;
-            rect.width = 48;
-            rect.height = 48;
+            // let mut rect: Rect = paint.rcPaint.into();
+            // rect.x = 60;
+            // rect.y = 6;
+            // rect.width = 48;
+            // rect.height = 48;
 
-            FillRect(
-                hdc,
-                &rect.into(),
-                CreateSolidBrush(RGB(
-                    (255.0 * (70.0 / 100.0)) as u8,
-                    (255.0 * (70.0 / 100.0)) as u8,
-                    (255.0 * (70.0 / 100.0)) as u8,
-                )),
-            );
-            FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
+            // FillRect(
+            //     hdc,
+            //     &rect.into(),
+            //     CreateSolidBrush(RGB(
+            //         (255.0 * (70.0 / 100.0)) as u8,
+            //         (255.0 * (70.0 / 100.0)) as u8,
+            //         (255.0 * (70.0 / 100.0)) as u8,
+            //     )),
+            // );
+            // FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
 
-            let mut rect: Rect = paint.rcPaint.into();
-            rect.x = 6;
-            rect.y = 60;
-            rect.width = 48;
-            rect.height = 48;
+            // let mut rect: Rect = paint.rcPaint.into();
+            // rect.x = 6;
+            // rect.y = 60;
+            // rect.width = 48;
+            // rect.height = 48;
 
-            FillRect(
-                hdc,
-                &rect.into(),
-                CreateSolidBrush(RGB(
-                    (255.0 * (70.0 / 100.0)) as u8,
-                    (255.0 * (70.0 / 100.0)) as u8,
-                    (255.0 * (70.0 / 100.0)) as u8,
-                )),
-            );
-            FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
+            // FillRect(
+            //     hdc,
+            //     &rect.into(),
+            //     CreateSolidBrush(RGB(
+            //         (255.0 * (70.0 / 100.0)) as u8,
+            //         (255.0 * (70.0 / 100.0)) as u8,
+            //         (255.0 * (70.0 / 100.0)) as u8,
+            //     )),
+            // );
+            // FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
 
-            let mut rect: Rect = paint.rcPaint.into();
-            rect.x = 60;
-            rect.y = 60;
-            rect.width = 48;
-            rect.height = 48;
+            // let mut rect: Rect = paint.rcPaint.into();
+            // rect.x = 60;
+            // rect.y = 60;
+            // rect.width = 48;
+            // rect.height = 48;
 
-            FillRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 77, 128)));
-            FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
+            // FillRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 77, 128)));
+            // FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
 
-            EndPaint(hWnd, &paint);
+            // EndPaint(hWnd, &paint);
         }
         WM_KEYDOWN => match wParam as i32 {
             VK_ESCAPE => {
@@ -386,19 +393,15 @@ unsafe extern "system" fn callback3(
 }
 
 #[derive(Clone, Copy)]
-struct Window(HWND);
+pub struct Window(HWND);
 
 unsafe impl Send for Window {}
 
 impl Window {
-    pub fn new(hwnd: HWND) -> Self {
-        Window(hwnd)
-    }
-
     pub fn get_foreground() -> Self {
         unsafe {
             let hwnd = GetForegroundWindow();
-            Window::new(hwnd)
+            Window(hwnd)
         }
     }
 
