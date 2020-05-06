@@ -41,7 +41,7 @@ impl From<Rect> for RECT {
 pub unsafe fn get_work_area() -> Rect {
     let active_monitor = {
         let active_window = Window::get_foreground();
-        MonitorFromWindow(active_window.hwnd, MONITOR_DEFAULTTONEAREST)
+        MonitorFromWindow(active_window.0, MONITOR_DEFAULTTONEAREST)
     };
 
     let work_area: Rect = {
