@@ -10,6 +10,11 @@ Click for full video
 [![Demo](https://i.imgur.com/bErviBc.gif)](https://i.imgur.com/ugPMvlA.mp4)
 
 
+## Download
+
+- Download executable from [latest release](https://github.com/tarkah/grout/releases/latest)
+
+
 ## Usage
 
 - Run `grout.exe` or `cargo run`. Program will run in the background.
@@ -21,6 +26,7 @@ Click for full video
 
 ## TODO
 
+- Multi-monitor support
 - System tray icon
 - Settings window to edit hotkey & margin config
 - Option to autostart
