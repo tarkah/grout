@@ -117,6 +117,7 @@ fn main() {
 
                         grid.reset();
                         grid.grid_window = None;
+                        track_mouse = false;
                     }
                 }
             },
