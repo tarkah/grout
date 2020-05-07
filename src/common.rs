@@ -1,14 +1,14 @@
+use std::mem;
+
 use winapi::shared::windef::RECT;
 use winapi::um::winuser::{
     GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
 };
 
-use std::mem;
-
-use crate::Window;
+use crate::window::Window;
 
 /// x & y coordinates are relative to top left of screen
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {
     pub x: i32,
     pub y: i32,
@@ -22,6 +22,15 @@ impl Rect {
             && point.0 <= self.x + self.width
             && point.1 >= self.y
             && point.1 <= self.y + self.height
+    }
+
+    pub fn zero() -> Self {
+        Rect {
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0,
+        }
     }
 }
 
