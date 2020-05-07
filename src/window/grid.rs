@@ -178,8 +178,14 @@ unsafe extern "system" fn callback(
 
             let mut grid = GRID.lock().unwrap();
 
-            if let Some(rect) = grid.select_tile((x, y)) {
+            if let Some(mut rect) = grid.select_tile((x, y)) {
                 if let Some(mut active_window) = grid.active_window {
+                    let border_adj = active_window.transparent_border();
+
+                    rect.x -= border_adj.0;
+                    rect.width += border_adj.0 * 2;
+                    rect.height += border_adj.1;
+
                     if grid.previous_resize != Some((active_window, rect)) {
                         active_window.set_pos(rect, None);
 

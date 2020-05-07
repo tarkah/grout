@@ -2,7 +2,9 @@ use std::mem;
 use std::ptr;
 
 use winapi::shared::windef::HWND;
-use winapi::um::winuser::{GetForegroundWindow, GetWindowRect, SetWindowPos, SWP_NOACTIVATE};
+use winapi::um::winuser::{
+    GetForegroundWindow, GetWindowInfo, GetWindowRect, SetWindowPos, SWP_NOACTIVATE, WINDOWINFO,
+};
 
 use crate::common::Rect;
 
@@ -48,6 +50,31 @@ impl Window {
             );
         }
     }
+
+    pub unsafe fn info(self) -> WindowInfo {
+        let mut info: WINDOWINFO = mem::zeroed();
+        info.cbSize = mem::size_of::<WINDOWINFO>() as u32;
+
+        GetWindowInfo(self.0, &mut info);
+
+        info.into()
+    }
+
+    pub unsafe fn transparent_border(self) -> (i32, i32) {
+        let info = self.info();
+
+        let x = {
+            (info.window_rect.x - info.client_rect.x)
+                + (info.window_rect.width - info.client_rect.width)
+        };
+
+        let y = {
+            (info.window_rect.y - info.client_rect.y)
+                + (info.window_rect.height - info.client_rect.height)
+        };
+
+        (x, y)
+    }
 }
 
 impl Default for Window {
@@ -59,5 +86,28 @@ impl Default for Window {
 impl PartialEq for Window {
     fn eq(&self, other: &Window) -> bool {
         self.0 == other.0
+    }
+}
+
+#[derive(Debug)]
+pub struct WindowInfo {
+    pub window_rect: Rect,
+    pub client_rect: Rect,
+    pub styles: u32,
+    pub extended_styles: u32,
+    pub x_borders: u32,
+    pub y_borders: u32,
+}
+
+impl From<WINDOWINFO> for WindowInfo {
+    fn from(info: WINDOWINFO) -> Self {
+        WindowInfo {
+            window_rect: info.rcWindow.into(),
+            client_rect: info.rcClient.into(),
+            styles: info.dwStyle,
+            extended_styles: info.dwExStyle,
+            x_borders: info.cxWindowBorders,
+            y_borders: info.cxWindowBorders,
+        }
     }
 }
