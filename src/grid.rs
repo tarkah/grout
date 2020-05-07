@@ -68,18 +68,23 @@ impl Grid {
     }
 
     unsafe fn zone_area(&self, row: usize, column: usize) -> Rect {
-        let mut work_area = get_work_area();
-        work_area.width -= self.border_margins as i32 * 2;
-        work_area.height -= self.border_margins as i32 * 2;
+        let work_area = get_work_area();
 
-        let zone_width = (work_area.width - (self.columns() - 1) as i32 * self.zone_margins as i32)
+        let zone_width = (work_area.width
+            - self.border_margins as i32 * 2
+            - (self.columns() - 1) as i32 * self.zone_margins as i32)
             / self.columns() as i32;
-        let zone_height = (work_area.height - (self.rows() - 1) as i32 * self.zone_margins as i32)
+        let zone_height = (work_area.height
+            - self.border_margins as i32 * 2
+            - (self.rows() - 1) as i32 * self.zone_margins as i32)
             / self.rows() as i32;
 
-        let x =
-            column as i32 * (work_area.width / self.columns() as i32) + self.border_margins as i32;
-        let y = row as i32 * (work_area.height / self.rows() as i32) + self.border_margins as i32;
+        let x = column as i32 * zone_width
+            + self.border_margins as i32
+            + column as i32 * self.zone_margins as i32;
+        let y = row as i32 * zone_height
+            + self.border_margins as i32
+            + row as i32 * self.zone_margins as i32;
 
         Rect {
             x,
