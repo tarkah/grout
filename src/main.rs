@@ -12,7 +12,7 @@ use crossbeam_channel::{bounded, select, unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
 
 use winapi::shared::{
-    minwindef::{DWORD, LPARAM, LRESULT, UINT, WPARAM},
+    minwindef::{DWORD, HIWORD, LOWORD, LPARAM, LRESULT, UINT, WPARAM},
     windef::{HBRUSH, HWINEVENTHOOK, HWND, RECT},
 };
 use winapi::um::errhandlingapi::GetLastError;
@@ -22,14 +22,16 @@ use winapi::um::winnt::LONG;
 use winapi::um::winuser::{
     BeginPaint, CreateWindowExW, DefWindowProcW, DispatchMessageW, DrawEdge, EndPaint, FillRect,
     FrameRect, GetForegroundWindow, GetMessageW, GetMonitorInfoW, GetWindowLongW, GetWindowRect,
-    LoadCursorW, MonitorFromWindow, PeekMessageW, PostQuitMessage, RedrawWindow, RegisterClassExW,
-    RegisterHotKey, SendMessageW, SetLayeredWindowAttributes, SetWinEventHook, SetWindowLongW,
-    SetWindowPos, ShowWindow, TranslateMessage, UnhookWinEvent, BDR_RAISEDOUTER, BF_FLAT,
-    COLOR_3DFACE, COLOR_BTNSHADOW, CS_OWNDC, EVENT_SYSTEM_FOREGROUND, GWL_STYLE, IDC_ARROW,
-    LWA_ALPHA, LWA_COLORKEY, MOD_ALT, MOD_CONTROL, MOD_NOREPEAT, MONITORINFO,
+    InvalidateRect, LoadCursorW, MonitorFromWindow, PeekMessageW, PostQuitMessage, RedrawWindow,
+    RegisterClassExW, RegisterHotKey, SendMessageW, SetCapture, SetForegroundWindow,
+    SetLayeredWindowAttributes, SetWinEventHook, SetWindowLongW, SetWindowPos, ShowWindow,
+    TrackMouseEvent, TranslateMessage, UnhookWinEvent, BDR_RAISEDOUTER, BF_FLAT, COLOR_3DFACE,
+    COLOR_BTNSHADOW, CS_OWNDC, EVENT_SYSTEM_FOREGROUND, GWL_STYLE, IDC_ARROW, LWA_ALPHA,
+    LWA_COLORKEY, MK_LBUTTON, MK_SHIFT, MOD_ALT, MOD_CONTROL, MOD_NOREPEAT, MONITORINFO,
     MONITOR_DEFAULTTONEAREST, RDW_INTERNALPAINT, RDW_INVALIDATE, SWP_FRAMECHANGED, SW_SHOW,
-    VK_CONTROL, VK_ESCAPE, VK_SHIFT, WINEVENT_OUTOFCONTEXT, WM_DESTROY, WM_HOTKEY, WM_KEYDOWN,
-    WM_KEYUP, WM_PAINT, WNDCLASSEXW, WS_BORDER, WS_CAPTION, WS_EX_COMPOSITED, WS_EX_LAYERED,
+    TME_LEAVE, TRACKMOUSEEVENT, VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP,
+    WINEVENT_OUTOFCONTEXT, WM_DESTROY, WM_HOTKEY, WM_KEYDOWN, WM_KEYUP, WM_MOUSELEAVE,
+    WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_BORDER, WS_CAPTION, WS_EX_COMPOSITED, WS_EX_LAYERED,
     WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_MAXIMIZE, WS_POPUP,
     WS_SIZEBOX, WS_SYSMENU, WS_THICKFRAME, WS_VISIBLE,
 };
@@ -51,6 +53,8 @@ enum Message {
     PickerWindow(Window),
     HighlightZone(Rect),
     HotkeyPressed,
+    TrackMouse(Window),
+    MouseLeft,
     InitializeWindows,
     CloseWindows,
 }
@@ -63,15 +67,18 @@ fn main() {
 
     spawn_hotkey_thread();
 
-    let mut highlighter_window = None;
-    let mut picker_window = None;
+    let mut highlighter_window: Option<Window> = None;
+    let mut picker_window: Option<Window> = None;
+    let mut track_mouse = false;
 
     loop {
         select! {
             recv(receiver) -> msg => {
                 match msg.unwrap() {
-                    Message::HighlighterWindow(window) => {
+                    Message::HighlighterWindow(window) => unsafe {
                         highlighter_window = Some(window);
+
+                        SetForegroundWindow(picker_window.as_ref().unwrap().0);
                     }
                     Message::PickerWindow(window) => {
                         picker_window = Some(window);
@@ -91,6 +98,21 @@ fn main() {
                             let _ = sender.send(Message::InitializeWindows);
                         }
                     }
+                    Message::TrackMouse(window) => unsafe {
+                        if !track_mouse {
+                            let mut event_track: TRACKMOUSEEVENT = mem::zeroed();
+                            event_track.cbSize = mem::size_of::<TRACKMOUSEEVENT>() as u32;
+                            event_track.dwFlags = TME_LEAVE;
+                            event_track.hwndTrack = window.0;
+
+                            TrackMouseEvent(&mut event_track);
+
+                            track_mouse = true;
+                        }
+                    }
+                    Message::MouseLeft => {
+                        track_mouse = false;
+                    }
                     Message::InitializeWindows => {
                         spawn_foreground_hook(close_channel.1.clone());
                         spawn_picker_window(close_channel.1.clone());
@@ -102,6 +124,9 @@ fn main() {
                         for _ in 0..3 {
                             let _ = close_channel.0.send(());
                         }
+
+                        GRID.lock().unwrap().control_down = false;
+                        GRID.lock().unwrap().shift_down = false;
                     }
                 }
             },
@@ -185,7 +210,7 @@ fn spawn_picker_window(close_msg: Receiver<()>) {
         let dimensions = GRID.lock().unwrap().dimensions();
 
         let hwnd = CreateWindowExW(
-            WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_COMPOSITED | WS_EX_TOOLWINDOW,
+            WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
             class_name.as_ptr(),
             ptr::null(),
             WS_POPUP | WS_VISIBLE | WS_SYSMENU,
@@ -312,81 +337,105 @@ unsafe extern "system" fn callback3(
 
     let sender = &CHANNEL.0.clone();
 
-    match Msg {
+    let repaint = match Msg {
         WM_PAINT => {
             GRID.lock().unwrap().draw(Window(hWnd));
-            // let mut paint = mem::zeroed();
-
-            // let hdc = BeginPaint(hWnd, &mut paint);
-
-            // let mut rect: Rect = paint.rcPaint.into();
-            // rect.x = 6;
-            // rect.y = 6;
-            // rect.width = 48;
-            // rect.height = 48;
-
-            // FillRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 100, 148)));
-            // FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
-
-            // let mut rect: Rect = paint.rcPaint.into();
-            // rect.x = 60;
-            // rect.y = 6;
-            // rect.width = 48;
-            // rect.height = 48;
-
-            // FillRect(
-            //     hdc,
-            //     &rect.into(),
-            //     CreateSolidBrush(RGB(
-            //         (255.0 * (70.0 / 100.0)) as u8,
-            //         (255.0 * (70.0 / 100.0)) as u8,
-            //         (255.0 * (70.0 / 100.0)) as u8,
-            //     )),
-            // );
-            // FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
-
-            // let mut rect: Rect = paint.rcPaint.into();
-            // rect.x = 6;
-            // rect.y = 60;
-            // rect.width = 48;
-            // rect.height = 48;
-
-            // FillRect(
-            //     hdc,
-            //     &rect.into(),
-            //     CreateSolidBrush(RGB(
-            //         (255.0 * (70.0 / 100.0)) as u8,
-            //         (255.0 * (70.0 / 100.0)) as u8,
-            //         (255.0 * (70.0 / 100.0)) as u8,
-            //     )),
-            // );
-            // FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
-
-            // let mut rect: Rect = paint.rcPaint.into();
-            // rect.x = 60;
-            // rect.y = 60;
-            // rect.width = 48;
-            // rect.height = 48;
-
-            // FillRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 77, 128)));
-            // FrameRect(hdc, &rect.into(), CreateSolidBrush(RGB(0, 0, 0)));
-
-            // EndPaint(hWnd, &paint);
+            false
         }
         WM_KEYDOWN => match wParam as i32 {
             VK_ESCAPE => {
                 let _ = sender.send(Message::CloseWindows);
+                false
             }
-            VK_CONTROL => {}
-            VK_SHIFT => {}
-            _ => {}
+            VK_CONTROL => {
+                GRID.lock().unwrap().control_down = true;
+                false
+            }
+            VK_SHIFT => {
+                GRID.lock().unwrap().shift_down = true;
+                false
+            }
+            VK_RIGHT => {
+                if GRID.lock().unwrap().control_down {
+                    GRID.lock().unwrap().add_column();
+                    GRID.lock().unwrap().reposition(Window(hWnd));
+                    true
+                } else {
+                    false
+                }
+            }
+            VK_LEFT => {
+                if GRID.lock().unwrap().control_down {
+                    GRID.lock().unwrap().remove_column();
+                    GRID.lock().unwrap().reposition(Window(hWnd));
+                    true
+                } else {
+                    false
+                }
+            }
+            VK_UP => {
+                if GRID.lock().unwrap().control_down {
+                    GRID.lock().unwrap().add_row();
+                    GRID.lock().unwrap().reposition(Window(hWnd));
+                    true
+                } else {
+                    false
+                }
+            }
+            VK_DOWN => {
+                if GRID.lock().unwrap().control_down {
+                    GRID.lock().unwrap().remove_row();
+                    GRID.lock().unwrap().reposition(Window(hWnd));
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
         },
         WM_KEYUP => match wParam as i32 {
-            VK_CONTROL => {}
-            VK_SHIFT => {}
-            _ => {}
+            VK_CONTROL => {
+                GRID.lock().unwrap().control_down = false;
+                false
+            }
+            VK_SHIFT => {
+                GRID.lock().unwrap().shift_down = false;
+                false
+            }
+            _ => false,
         },
-        _ => {}
+        WM_MOUSEMOVE => {
+            let x = LOWORD(lParam as u32) as i32;
+            let y = HIWORD(lParam as u32) as i32;
+
+            let _ = sender.send(Message::TrackMouse(Window(hWnd)));
+
+            match wParam {
+                n if n == 0 || n == MK_SHIFT => GRID.lock().unwrap().highlight_tiles((x, y)),
+                _ => false,
+            }
+        }
+        WM_MOUSELEAVE => {
+            GRID.lock().unwrap().unhighlight_all_tiles();
+
+            let _ = sender.send(Message::MouseLeft);
+
+            true
+        }
+        _ => false,
+    };
+
+    if repaint {
+        let dimensions = GRID.lock().unwrap().dimensions();
+        let rect = Rect {
+            x: 0,
+            y: 0,
+            width: dimensions.0 as i32,
+            height: dimensions.1 as i32,
+        };
+
+        InvalidateRect(hWnd, &rect.into(), 0);
+        SendMessageW(hWnd, WM_PAINT, 0, 0);
     }
 
     DefWindowProcW(hWnd, Msg, wParam, lParam)

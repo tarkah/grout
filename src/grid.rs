@@ -22,11 +22,11 @@ use winapi::um::winuser::{
     SetWindowPos, ShowWindow, TranslateMessage, UnhookWinEvent, BDR_RAISEDOUTER, BF_FLAT,
     COLOR_3DFACE, COLOR_BTNSHADOW, CS_OWNDC, EVENT_SYSTEM_FOREGROUND, GWL_STYLE, IDC_ARROW,
     LWA_ALPHA, LWA_COLORKEY, MOD_ALT, MOD_CONTROL, MOD_NOREPEAT, MONITORINFO,
-    MONITOR_DEFAULTTONEAREST, RDW_INTERNALPAINT, RDW_INVALIDATE, SWP_FRAMECHANGED, SW_SHOW,
-    VK_CONTROL, VK_ESCAPE, VK_SHIFT, WINEVENT_OUTOFCONTEXT, WM_DESTROY, WM_HOTKEY, WM_KEYDOWN,
-    WM_KEYUP, WM_PAINT, WNDCLASSEXW, WS_BORDER, WS_CAPTION, WS_EX_COMPOSITED, WS_EX_LAYERED,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_MAXIMIZE, WS_POPUP,
-    WS_SIZEBOX, WS_SYSMENU, WS_THICKFRAME, WS_VISIBLE,
+    MONITOR_DEFAULTTONEAREST, PAINTSTRUCT, RDW_INTERNALPAINT, RDW_INVALIDATE, SWP_FRAMECHANGED,
+    SW_SHOW, VK_CONTROL, VK_ESCAPE, VK_SHIFT, WINEVENT_OUTOFCONTEXT, WM_DESTROY, WM_HOTKEY,
+    WM_KEYDOWN, WM_KEYUP, WM_PAINT, WNDCLASSEXW, WS_BORDER, WS_CAPTION, WS_EX_COMPOSITED,
+    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_EX_TRANSPARENT,
+    WS_MAXIMIZE, WS_POPUP, WS_SIZEBOX, WS_SYSMENU, WS_THICKFRAME, WS_VISIBLE,
 };
 
 use crate::common::{get_work_area, Rect};
@@ -36,8 +36,8 @@ const TILE_WIDTH: u32 = 48;
 const TILE_HEIGHT: u32 = 48;
 
 pub struct Grid {
-    shift_down: bool,
-    control_down: bool,
+    pub shift_down: bool,
+    pub control_down: bool,
     margins: u8,
     tiles: Vec<Vec<Tile>>, // tiles[row][column]
 }
@@ -48,7 +48,7 @@ impl Default for Grid {
             shift_down: false,
             control_down: false,
             margins: 6,
-            tiles: vec![vec![Tile::default(); 8]; 4],
+            tiles: vec![vec![Tile::default(); 2]; 2],
         }
     }
 }
@@ -72,23 +72,23 @@ impl Grid {
         self.tiles[0].len()
     }
 
-    fn add_row(&mut self) {
+    pub fn add_row(&mut self) {
         self.tiles.push(vec![Tile::default(); self.columns()]);
     }
 
-    fn add_column(&mut self) {
+    pub fn add_column(&mut self) {
         for row in self.tiles.iter_mut() {
             row.push(Tile::default());
         }
     }
 
-    fn remove_row(&mut self) {
+    pub fn remove_row(&mut self) {
         if self.rows() > 1 {
             self.tiles.pop();
         }
     }
 
-    fn remove_column(&mut self) {
+    pub fn remove_column(&mut self) {
         if self.columns() > 1 {
             for row in self.tiles.iter_mut() {
                 row.pop();
@@ -109,8 +109,48 @@ impl Grid {
         }
     }
 
+    pub unsafe fn reposition(&self, mut window: Window) {
+        let work_area = get_work_area();
+        let dimensions = self.dimensions();
+
+        let rect = Rect {
+            x: work_area.width / 2 - dimensions.0 as i32 / 2,
+            y: work_area.height / 2 - dimensions.1 as i32 / 2,
+            width: dimensions.0 as i32,
+            height: dimensions.1 as i32,
+        };
+
+        window.set_pos(rect, None);
+    }
+
+    /// Returns whether any highlighting was done
+    pub fn highlight_tiles(&mut self, point: (i32, i32)) -> bool {
+        let original_tiles = self.tiles.clone();
+
+        for row in 0..self.rows() {
+            for column in 0..self.columns() {
+                let tile_area = self.tile_area(row, column);
+
+                if tile_area.contains_point(point) {
+                    self.tiles[row][column].hovered = true;
+                } else if !self.shift_down {
+                    self.tiles[row][column].hovered = false;
+                }
+            }
+        }
+
+        original_tiles != self.tiles
+    }
+
+    pub fn unhighlight_all_tiles(&mut self) {
+        self.tiles
+            .iter_mut()
+            .for_each(|row| row.iter_mut().for_each(|tile| tile.hovered = false));
+    }
+
     pub unsafe fn draw(&self, window: Window) {
-        let mut paint = mem::zeroed();
+        let mut paint: PAINTSTRUCT = mem::zeroed();
+        //paint.fErase = 1;
 
         let hdc = BeginPaint(window.0, &mut paint);
 
@@ -124,7 +164,7 @@ impl Grid {
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, PartialEq)]
 struct Tile {
     selected: bool,
     hovered: bool,

@@ -16,6 +16,15 @@ pub struct Rect {
     pub height: i32,
 }
 
+impl Rect {
+    pub fn contains_point(self, point: (i32, i32)) -> bool {
+        point.0 >= self.x
+            && point.0 <= self.x + self.width
+            && point.1 >= self.y
+            && point.1 <= self.y + self.height
+    }
+}
+
 impl From<RECT> for Rect {
     fn from(rect: RECT) -> Self {
         Rect {
