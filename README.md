@@ -18,3 +18,9 @@ Click for full video
 - Hovering cursor over the grid will show a preview of that zone in the window.
 - Select a window you want resized, then click on a tile in the grid. Window will resize to that zone.
 - Hold `SHIFT` down while hovering after a selection, zone will increase in size across all tiles. Select again to resize to larger zone.
+
+## TODO
+
+- System tray icon
+- Settings window to edit hotkey & margin config
+- Option to autostart
