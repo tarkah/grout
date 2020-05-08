@@ -1,7 +1,7 @@
 use std::mem;
 
 use winapi::shared::windef::{HBRUSH, HDC};
-use winapi::um::wingdi::{CreateSolidBrush, RGB};
+use winapi::um::wingdi::{CreateSolidBrush, DeleteObject, RGB};
 use winapi::um::winuser::{BeginPaint, EndPaint, FillRect, FrameRect, PAINTSTRUCT};
 
 use crate::common::{get_work_area, Rect};
@@ -321,8 +321,14 @@ struct Tile {
 
 impl Tile {
     unsafe fn draw(self, hdc: HDC, area: Rect) {
-        FillRect(hdc, &area.into(), self.fill_brush());
-        FrameRect(hdc, &area.into(), CreateSolidBrush(RGB(0, 0, 0)));
+        let fill_brush = self.fill_brush();
+        let frame_brush = CreateSolidBrush(RGB(0, 0, 0));
+
+        FillRect(hdc, &area.into(), fill_brush);
+        FrameRect(hdc, &area.into(), frame_brush);
+
+        DeleteObject(fill_brush as *mut _);
+        DeleteObject(frame_brush as *mut _);
     }
 
     unsafe fn fill_brush(self) -> HBRUSH {

@@ -13,10 +13,9 @@ use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::{CreateSolidBrush, RGB};
 use winapi::um::winuser::{
     CreateWindowExW, DefWindowProcW, DispatchMessageW, InvalidateRect, LoadCursorW, PeekMessageW,
-    RegisterClassExW, SendMessageW, SetLayeredWindowAttributes, TranslateMessage, IDC_ARROW,
-    LWA_COLORKEY, VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP, WM_KEYDOWN,
-    WM_KEYUP, WM_LBUTTONUP, WM_MOUSELEAVE, WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_EX_TOOLWINDOW,
-    WS_EX_TOPMOST, WS_POPUP, WS_SYSMENU, WS_VISIBLE,
+    RegisterClassExW, SendMessageW, TranslateMessage, IDC_ARROW, VK_CONTROL, VK_DOWN, VK_ESCAPE,
+    VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONUP, WM_MOUSELEAVE,
+    WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP, WS_VISIBLE,
 };
 
 use crate::common::{get_work_area, Rect};
@@ -46,10 +45,10 @@ pub fn spawn_grid_window(close_msg: Receiver<()>) {
         let dimensions = GRID.lock().unwrap().dimensions();
 
         let hwnd = CreateWindowExW(
-            WS_EX_TOPMOST | WS_EX_TOOLWINDOW, // | WS_EX_LAYERED ,
+            WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
             class_name.as_ptr(),
             ptr::null(),
-            WS_POPUP | WS_VISIBLE | WS_SYSMENU,
+            WS_POPUP | WS_VISIBLE,
             work_area.width / 2 - dimensions.0 as i32 / 2,
             work_area.height / 2 - dimensions.1 as i32 / 2,
             dimensions.0 as i32,
@@ -59,8 +58,6 @@ pub fn spawn_grid_window(close_msg: Receiver<()>) {
             hInstance,
             ptr::null_mut(),
         );
-
-        SetLayeredWindowAttributes(hwnd, 0, 1, LWA_COLORKEY);
 
         let _ = &CHANNEL.0.clone().send(Message::GridWindow(Window(hwnd)));
 
@@ -113,37 +110,29 @@ unsafe extern "system" fn callback(
                 if GRID.lock().unwrap().control_down {
                     GRID.lock().unwrap().add_column();
                     GRID.lock().unwrap().reposition(Window(hWnd));
-                    true
-                } else {
-                    false
                 }
+                false
             }
             VK_LEFT => {
                 if GRID.lock().unwrap().control_down {
                     GRID.lock().unwrap().remove_column();
                     GRID.lock().unwrap().reposition(Window(hWnd));
-                    true
-                } else {
-                    false
                 }
+                false
             }
             VK_UP => {
                 if GRID.lock().unwrap().control_down {
                     GRID.lock().unwrap().add_row();
                     GRID.lock().unwrap().reposition(Window(hWnd));
-                    true
-                } else {
-                    false
                 }
+                false
             }
             VK_DOWN => {
                 if GRID.lock().unwrap().control_down {
                     GRID.lock().unwrap().remove_row();
                     GRID.lock().unwrap().reposition(Window(hWnd));
-                    true
-                } else {
-                    false
                 }
+                false
             }
             _ => false,
         },
