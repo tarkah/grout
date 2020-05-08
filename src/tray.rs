@@ -8,7 +8,8 @@ use winapi::shared::{
 };
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::shellapi::{
-    Shell_NotifyIconW, NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NOTIFYICONDATAW,
+    ShellExecuteW, Shell_NotifyIconW, NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE,
+    NOTIFYICONDATAW,
 };
 use winapi::um::wingdi::{CreateSolidBrush, RGB};
 use winapi::um::winuser::{
@@ -16,9 +17,9 @@ use winapi::um::winuser::{
     DispatchMessageW, GetCursorPos, GetMessageW, InsertMenuW, MessageBoxW, PostMessageW,
     PostQuitMessage, RegisterClassExW, SendMessageW, SetFocus, SetForegroundWindow,
     SetMenuDefaultItem, TrackPopupMenu, TranslateMessage, LR_DEFAULTCOLOR, MB_ICONINFORMATION,
-    MB_OK, MF_BYPOSITION, MF_STRING, TPM_LEFTALIGN, TPM_NONOTIFY, TPM_RETURNCMD, TPM_RIGHTBUTTON,
-    WM_APP, WM_CLOSE, WM_COMMAND, WM_CREATE, WM_INITMENUPOPUP, WM_LBUTTONDBLCLK, WM_RBUTTONUP,
-    WNDCLASSEXW, WS_EX_NOACTIVATE,
+    MB_OK, MF_BYPOSITION, MF_STRING, SW_SHOW, TPM_LEFTALIGN, TPM_NONOTIFY, TPM_RETURNCMD,
+    TPM_RIGHTBUTTON, WM_APP, WM_CLOSE, WM_COMMAND, WM_CREATE, WM_INITMENUPOPUP, WM_LBUTTONDBLCLK,
+    WM_RBUTTONUP, WNDCLASSEXW, WS_EX_NOACTIVATE,
 };
 
 use crate::Message;
@@ -26,6 +27,7 @@ use crate::CHANNEL;
 
 const ID_ABOUT: u16 = 2000;
 const ID_EXIT: u16 = 2001;
+const ID_CONFIG: u16 = 2002;
 static mut MODAL_SHOWN: bool = false;
 
 pub unsafe fn spawn_sys_tray() {
@@ -118,6 +120,10 @@ unsafe fn show_popup_menu(hwnd: HWND) {
     let mut about = about.encode_utf16().collect::<Vec<_>>();
     about.push(0);
 
+    let config = "Open Config";
+    let mut config = config.encode_utf16().collect::<Vec<_>>();
+    config.push(0);
+
     let exit = "Exit";
     let mut exit = exit.encode_utf16().collect::<Vec<_>>();
     exit.push(0);
@@ -133,6 +139,14 @@ unsafe fn show_popup_menu(hwnd: HWND) {
     InsertMenuW(
         menu,
         1,
+        MF_BYPOSITION | MF_STRING,
+        ID_CONFIG as usize,
+        config.as_mut_ptr(),
+    );
+
+    InsertMenuW(
+        menu,
+        2,
         MF_BYPOSITION | MF_STRING,
         ID_EXIT as usize,
         exit.as_mut_ptr(),
@@ -208,6 +222,34 @@ unsafe extern "system" fn callback(
                     show_about();
 
                     MODAL_SHOWN = false;
+                }
+                ID_CONFIG => {
+                    if let Some(mut config_path) = dirs::config_dir() {
+                        config_path.push("grout");
+                        config_path.push("config.yml");
+
+                        if config_path.exists() {
+                            let operation = "open";
+                            let mut operation = operation.encode_utf16().collect::<Vec<_>>();
+                            operation.push(0);
+
+                            let mut config_path = config_path
+                                .to_str()
+                                .unwrap()
+                                .encode_utf16()
+                                .collect::<Vec<_>>();
+                            config_path.push(0);
+
+                            ShellExecuteW(
+                                hWnd,
+                                operation.as_mut_ptr(),
+                                config_path.as_mut_ptr(),
+                                ptr::null_mut(),
+                                ptr::null_mut(),
+                                SW_SHOW,
+                            );
+                        }
+                    }
                 }
                 ID_EXIT => {
                     PostMessageW(hWnd, WM_CLOSE, 0, 0);

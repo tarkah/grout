@@ -17,6 +17,7 @@ use crate::tray::spawn_sys_tray;
 use crate::window::{spawn_grid_window, spawn_preview_window, Window};
 
 mod common;
+mod config;
 mod event;
 mod grid;
 mod hotkey;
@@ -25,7 +26,11 @@ mod window;
 
 lazy_static! {
     static ref CHANNEL: (Sender<Message>, Receiver<Message>) = unbounded();
-    static ref GRID: Arc<Mutex<Grid>> = Arc::new(Mutex::new(Grid::default()));
+    static ref GRID: Arc<Mutex<Grid>> = {
+        let config = config::load_config();
+
+        Arc::new(Mutex::new(Grid::from(config)))
+    };
 }
 
 pub enum Message {
