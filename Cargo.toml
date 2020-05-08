@@ -11,4 +11,4 @@ lazy_static = "1.4"
 
 [dependencies.winapi]
 version = "0.3"
-features = ["winuser", "wingdi", "libloaderapi", "errhandlingapi"]
+features = ["winuser", "wingdi", "libloaderapi", "errhandlingapi", "shellapi"]
