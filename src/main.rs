@@ -13,12 +13,14 @@ use crate::common::Rect;
 use crate::event::spawn_foreground_hook;
 use crate::grid::Grid;
 use crate::hotkey::spawn_hotkey_thread;
+use crate::tray::spawn_sys_tray;
 use crate::window::{spawn_grid_window, spawn_preview_window, Window};
 
 mod common;
 mod event;
 mod grid;
 mod hotkey;
+mod tray;
 mod window;
 
 lazy_static! {
@@ -36,6 +38,7 @@ pub enum Message {
     MouseLeft,
     InitializeWindows,
     CloseWindows,
+    Exit,
 }
 
 fn main() {
@@ -45,6 +48,9 @@ fn main() {
     let close_channel = bounded::<()>(3);
 
     spawn_hotkey_thread();
+    unsafe {
+        spawn_sys_tray();
+    }
 
     let mut preview_window: Option<Window> = None;
     let mut grid_window: Option<Window> = None;
@@ -118,6 +124,9 @@ fn main() {
                         grid.reset();
                         grid.grid_window = None;
                         track_mouse = false;
+                    }
+                    Message::Exit => {
+                        break;
                     }
                 }
             },
