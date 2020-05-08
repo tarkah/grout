@@ -1,4 +1,8 @@
+use std::collections::HashMap;
+use std::fs;
 use std::mem;
+
+use serde::{Deserialize, Serialize};
 
 use winapi::shared::windef::{HBRUSH, HDC};
 use winapi::um::wingdi::{CreateSolidBrush, DeleteObject, RGB};
@@ -23,6 +27,68 @@ pub struct Grid {
     zone_margins: u8,
     border_margins: u8,
     tiles: Vec<Vec<Tile>>, // tiles[row][column]
+    active_config: String,
+    configs: GridConfigs,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub struct GridConfig {
+    rows: usize,
+    columns: usize,
+}
+
+impl Default for GridConfig {
+    fn default() -> Self {
+        GridConfig {
+            rows: 2,
+            columns: 2,
+        }
+    }
+}
+
+pub type GridConfigs = HashMap<String, GridConfig>;
+pub trait GridCache {
+    fn load() -> GridConfigs;
+    fn save(&self);
+}
+
+impl GridCache for GridConfigs {
+    fn load() -> GridConfigs {
+        if let Some(mut config_path) = dirs::config_dir() {
+            config_path.push("grout");
+            config_path.push("cache");
+
+            if !config_path.exists() {
+                let _ = fs::create_dir_all(&config_path);
+            }
+
+            config_path.push("grid.yml");
+
+            let mut config = config::Config::default();
+
+            let file_config = config::File::from(config_path).format(config::FileFormat::Yaml);
+
+            if let Ok(config) = config.merge(file_config) {
+                return config.clone().try_into().unwrap_or_default();
+            }
+        }
+
+        let mut config = HashMap::new();
+        config.insert("Default".to_owned(), GridConfig::default());
+        config
+    }
+
+    fn save(&self) {
+        if let Some(mut config_path) = dirs::config_dir() {
+            config_path.push("grout");
+            config_path.push("cache");
+            config_path.push("grid.yml");
+
+            if let Ok(serialized) = serde_yaml::to_string(&self) {
+                let _ = fs::write(config_path, serialized);
+            }
+        }
+    }
 }
 
 impl From<Config> for Grid {
@@ -37,6 +103,14 @@ impl From<Config> for Grid {
 
 impl Default for Grid {
     fn default() -> Self {
+        let configs = GridConfigs::load();
+        let active_config = "Default".to_owned();
+
+        let default_config = configs.get(&active_config).cloned().unwrap_or_default();
+
+        let rows = default_config.rows;
+        let columns = default_config.columns;
+
         Grid {
             shift_down: false,
             control_down: false,
@@ -48,7 +122,9 @@ impl Default for Grid {
             grid_margins: 3,
             zone_margins: 10,
             border_margins: 10,
-            tiles: vec![vec![Tile::default(); 2]; 2],
+            tiles: vec![vec![Tile::default(); rows]; columns],
+            active_config,
+            configs,
         }
     }
 }
@@ -66,6 +142,18 @@ impl Grid {
                 tile.hovered = false;
             })
         });
+    }
+
+    fn save_config(&mut self) {
+        let rows = self.rows();
+        let columns = self.columns();
+
+        if let Some(grid_config) = self.configs.get_mut(&self.active_config) {
+            grid_config.rows = rows;
+            grid_config.columns = columns;
+        }
+
+        self.configs.save();
     }
 
     pub fn dimensions(&self) -> (u32, u32) {
@@ -115,18 +203,21 @@ impl Grid {
 
     pub fn add_row(&mut self) {
         self.tiles.push(vec![Tile::default(); self.columns()]);
+        self.save_config();
     }
 
     pub fn add_column(&mut self) {
         for row in self.tiles.iter_mut() {
             row.push(Tile::default());
         }
+        self.save_config();
     }
 
     pub fn remove_row(&mut self) {
         if self.rows() > 1 {
             self.tiles.pop();
         }
+        self.save_config();
     }
 
     pub fn remove_column(&mut self) {
@@ -135,6 +226,7 @@ impl Grid {
                 row.pop();
             }
         }
+        self.save_config();
     }
 
     fn tile_area(&self, row: usize, column: usize) -> Rect {
