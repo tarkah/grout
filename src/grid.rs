@@ -5,6 +5,7 @@ use winapi::um::wingdi::{CreateSolidBrush, DeleteObject, RGB};
 use winapi::um::winuser::{BeginPaint, EndPaint, FillRect, FrameRect, PAINTSTRUCT};
 
 use crate::common::{get_work_area, Rect};
+use crate::config::Config;
 use crate::window::Window;
 
 const TILE_WIDTH: u32 = 48;
@@ -22,6 +23,16 @@ pub struct Grid {
     zone_margins: u8,
     border_margins: u8,
     tiles: Vec<Vec<Tile>>, // tiles[row][column]
+}
+
+impl From<Config> for Grid {
+    fn from(config: Config) -> Self {
+        Grid {
+            zone_margins: config.margins,
+            border_margins: config.window_padding,
+            ..Default::default()
+        }
+    }
 }
 
 impl Default for Grid {
