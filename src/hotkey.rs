@@ -39,17 +39,6 @@ pub fn spawn_hotkey_thread() {
         );
 
         if result == 0 {
-            /*let error_msg = "Failed to assign hot key. Is program already running?";
-            let mut error_msg = error_msg.encode_utf16().collect::<Vec<_>>();
-            error_msg.push(0);
-
-            MessageBoxW(
-                ptr::null_mut(),
-                error_msg.as_mut_ptr(),
-                ptr::null_mut(),
-                MB_OK,
-            );*/
-
             report_and_exit("Failed to assign hot key. Is program already running?");
         }
 
