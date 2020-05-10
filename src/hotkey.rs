@@ -20,7 +20,7 @@ pub fn spawn_hotkey_thread() {
     
     let mut hotkey: Vec<String> = config::load_config().hotkey
                                 .split("+")
-                                .map(|s| s.to_string())
+                                .map(|s| s.trim().to_string())
                                 .collect();
 
     if hotkey.len() != 3 {
