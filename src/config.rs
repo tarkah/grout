@@ -11,7 +11,7 @@ margins: 10
 # Padding between edge of monitor and windows, in pixels
 window_padding: 10
 
-# Hotkey to activate
+# Hotkey to activate. Valid modifiers are CTRL, ALT, SHIFT, WIN
 hotkey: CTRL+ALT+S
 ";
 

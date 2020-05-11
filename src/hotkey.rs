@@ -57,12 +57,10 @@ fn compile_modifiers(activators: &Vec<String>) -> u32 {
     let mut code: u32 = 0;
     for key in activators.iter() {
         match key.as_str() {
-            "ALT"   => code = code | MOD_ALT as u32,
-            "CTRL"  => code = code | MOD_CONTROL as u32,
-            "SHIFT" => code = code | MOD_SHIFT as u32,
+            "WIN" => code |= MOD_WIN as u32,
 
             _ => unsafe {
-                report_and_exit("Invalid hotkey: Unidentified modifier in hotkey combination.")
+                report_and_exit("Invalid hotkey: Unidentified modifier in hotkey combination. Valid modifiers are CTRL, ALT, SHIFT, WIN.")
             },
         }
     }
