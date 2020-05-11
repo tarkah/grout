@@ -69,10 +69,8 @@ pub fn spawn_preview_window(close_msg: Receiver<()>) {
                 recv(close_msg) -> _ => {
                     break;
                 }
-                default => {}
+                default(Duration::from_millis(10)) => {}
             }
-
-            thread::sleep(Duration::from_millis(10));
         }
     });
 }

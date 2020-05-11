@@ -2,12 +2,11 @@ use std::mem;
 use std::process;
 use std::ptr;
 
-use winapi::shared::windef::RECT;
+use winapi::shared::windef::{POINT, RECT};
 use winapi::um::winuser::{
-    GetMonitorInfoW, MessageBoxW, MonitorFromWindow, MB_OK, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    GetCursorPos, GetMonitorInfoW, MessageBoxW, MonitorFromPoint, MB_OK, MONITORINFOEXW,
+    MONITOR_DEFAULTTONEAREST,
 };
-
-use crate::window::Window;
 
 /// x & y coordinates are relative to top left of screen
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -60,20 +59,38 @@ impl From<Rect> for RECT {
 
 pub unsafe fn get_work_area() -> Rect {
     let active_monitor = {
-        let active_window = Window::get_foreground();
-        MonitorFromWindow(active_window.0, MONITOR_DEFAULTTONEAREST)
+        let mut cursor_pos: POINT = mem::zeroed();
+        GetCursorPos(&mut cursor_pos);
+
+        MonitorFromPoint(cursor_pos, MONITOR_DEFAULTTONEAREST)
     };
 
     let work_area: Rect = {
-        let mut info: MONITORINFO = mem::zeroed();
-        info.cbSize = mem::size_of::<MONITORINFO>() as u32;
+        let mut info: MONITORINFOEXW = mem::zeroed();
+        info.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
 
-        GetMonitorInfoW(active_monitor, &mut info);
+        GetMonitorInfoW(active_monitor, &mut info as *mut MONITORINFOEXW as *mut _);
 
         info.rcWork.into()
     };
 
     work_area
+}
+
+pub unsafe fn get_active_monitor_name() -> String {
+    let active_monitor = {
+        let mut cursor_pos: POINT = mem::zeroed();
+        GetCursorPos(&mut cursor_pos);
+
+        MonitorFromPoint(cursor_pos, MONITOR_DEFAULTTONEAREST)
+    };
+
+    let mut info: MONITORINFOEXW = mem::zeroed();
+    info.cbSize = mem::size_of::<MONITORINFOEXW>() as u32;
+
+    GetMonitorInfoW(active_monitor, &mut info as *mut MONITORINFOEXW as *mut _);
+
+    String::from_utf16_lossy(&info.szDevice)
 }
 
 pub unsafe fn report_and_exit(error_msg: &str) {

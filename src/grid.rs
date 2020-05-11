@@ -8,7 +8,7 @@ use winapi::shared::windef::{HBRUSH, HDC};
 use winapi::um::wingdi::{CreateSolidBrush, DeleteObject, RGB};
 use winapi::um::winuser::{BeginPaint, EndPaint, FillRect, FrameRect, PAINTSTRUCT};
 
-use crate::common::{get_work_area, Rect};
+use crate::common::{get_active_monitor_name, get_work_area, Rect};
 use crate::config::Config;
 use crate::window::Window;
 
@@ -29,11 +29,11 @@ pub struct Grid {
     zone_margins: u8,
     border_margins: u8,
     tiles: Vec<Vec<Tile>>, // tiles[row][column]
-    active_config: String,
+    active_config: GridConfigKey,
     configs: GridConfigs,
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
 pub struct GridConfig {
     rows: usize,
     columns: usize,
@@ -48,7 +48,22 @@ impl Default for GridConfig {
     }
 }
 
-pub type GridConfigs = HashMap<String, GridConfig>;
+#[derive(Serialize, Deserialize, PartialEq, Eq, Hash, Clone, Debug)]
+pub struct GridConfigKey {
+    monitor: String,
+    profile: String,
+}
+
+impl Default for GridConfigKey {
+    fn default() -> Self {
+        let monitor = unsafe { get_active_monitor_name() };
+        let profile = "Default".to_owned();
+
+        GridConfigKey { monitor, profile }
+    }
+}
+
+pub type GridConfigs = HashMap<GridConfigKey, GridConfig>;
 pub trait GridCache {
     fn load() -> GridConfigs;
     fn save(&self);
@@ -64,19 +79,17 @@ impl GridCache for GridConfigs {
                 let _ = fs::create_dir_all(&config_path);
             }
 
-            config_path.push("grid.yml");
+            config_path.push("grid.ron");
 
-            let mut config = config::Config::default();
-
-            let file_config = config::File::from(config_path).format(config::FileFormat::Yaml);
-
-            if let Ok(config) = config.merge(file_config) {
-                return config.clone().try_into().unwrap_or_default();
+            if let Ok(file) = fs::File::open(config_path) {
+                if let Ok(config) = ron::de::from_reader(file) {
+                    return config;
+                }
             }
         }
 
         let mut config = HashMap::new();
-        config.insert("Default".to_owned(), GridConfig::default());
+        config.insert(GridConfigKey::default(), GridConfig::default());
         config
     }
 
@@ -84,17 +97,17 @@ impl GridCache for GridConfigs {
         if let Some(mut config_path) = dirs::config_dir() {
             config_path.push("grout");
             config_path.push("cache");
-            config_path.push("grid.yml");
+            config_path.push("grid.ron");
 
-            if let Ok(serialized) = serde_yaml::to_string(&self) {
+            if let Ok(serialized) = ron::ser::to_string(&self) {
                 let _ = fs::write(config_path, serialized);
             }
         }
     }
 }
 
-impl From<Config> for Grid {
-    fn from(config: Config) -> Self {
+impl From<&Config> for Grid {
+    fn from(config: &Config) -> Self {
         Grid {
             zone_margins: config.margins,
             border_margins: config.window_padding,
@@ -106,7 +119,7 @@ impl From<Config> for Grid {
 impl Default for Grid {
     fn default() -> Self {
         let configs = GridConfigs::load();
-        let active_config = "Default".to_owned();
+        let active_config = GridConfigKey::default();
 
         let default_config = configs.get(&active_config).cloned().unwrap_or_default();
 
@@ -160,6 +173,9 @@ impl Grid {
         if let Some(grid_config) = self.configs.get_mut(&self.active_config) {
             grid_config.rows = rows;
             grid_config.columns = columns;
+        } else {
+            self.configs
+                .insert(self.active_config.clone(), GridConfig { rows, columns });
         }
 
         self.configs.save();
@@ -189,10 +205,12 @@ impl Grid {
 
         let x = column as i32 * zone_width
             + self.border_margins as i32
-            + column as i32 * self.zone_margins as i32;
+            + column as i32 * self.zone_margins as i32
+            + work_area.x;
         let y = row as i32 * zone_height
             + self.border_margins as i32
-            + row as i32 * self.zone_margins as i32;
+            + row as i32 * self.zone_margins as i32
+            + work_area.y;
 
         Rect {
             x,
@@ -251,18 +269,18 @@ impl Grid {
         }
     }
 
-    pub unsafe fn reposition(&self, mut window: Window) {
+    pub unsafe fn reposition(&mut self) {
         let work_area = get_work_area();
         let dimensions = self.dimensions();
 
         let rect = Rect {
-            x: work_area.width / 2 - dimensions.0 as i32 / 2,
-            y: work_area.height / 2 - dimensions.1 as i32 / 2,
+            x: work_area.width / 2 - dimensions.0 as i32 / 2 + work_area.x,
+            y: work_area.height / 2 - dimensions.1 as i32 / 2 + work_area.y,
             width: dimensions.0 as i32,
             height: dimensions.1 as i32,
         };
 
-        window.set_pos(rect, None);
+        self.grid_window.as_mut().unwrap().set_pos(rect, None);
     }
 
     /// Returns true if a change in highlighting occured
