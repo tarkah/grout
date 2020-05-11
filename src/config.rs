@@ -10,6 +10,9 @@ margins: 10
 
 # Padding between edge of monitor and windows, in pixels
 window_padding: 10
+
+# Hotkey to activate. Valid modifiers are CTRL, ALT, SHIFT, WIN
+hotkey: CTRL+ALT+S
 ";
 
 pub fn load_config() -> Config {
@@ -41,6 +44,7 @@ pub fn load_config() -> Config {
 pub struct Config {
     pub margins: u8,
     pub window_padding: u8,
+    pub hotkey: String,
 }
 
 impl Default for Config {
@@ -48,6 +52,7 @@ impl Default for Config {
         Config {
             margins: 10,
             window_padding: 10,
+            hotkey: "CTRL+ALT+S".to_string(),
         }
     }
 }

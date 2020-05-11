@@ -1,8 +1,10 @@
 use std::mem;
+use std::process;
+use std::ptr;
 
 use winapi::shared::windef::RECT;
 use winapi::um::winuser::{
-    GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    GetMonitorInfoW, MessageBoxW, MonitorFromWindow, MB_OK, MONITORINFO, MONITOR_DEFAULTTONEAREST,
 };
 
 use crate::window::Window;
@@ -72,4 +74,18 @@ pub unsafe fn get_work_area() -> Rect {
     };
 
     work_area
+}
+
+pub unsafe fn report_and_exit(error_msg: &str) {
+    let mut error_msg = error_msg.encode_utf16().collect::<Vec<_>>();
+    error_msg.push(0);
+
+    MessageBoxW(
+        ptr::null_mut(),
+        error_msg.as_mut_ptr(),
+        ptr::null_mut(),
+        MB_OK,
+    );
+
+    process::exit(1);
 }
