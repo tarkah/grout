@@ -1,6 +1,7 @@
 # grout
+![Rust](https://github.com/tarkah/grout/workflows/Rust/badge.svg)
 
-A simple tiling window manager for Windows, written in Rust. Inspired by Budgie Window Shuffler's grid functionality. Currently only tested on a single monitor.
+A simple tiling window manager for Windows, written in Rust. Inspired by Budgie's Window Shuffler grid functionality.
 
 - [Demo](#demo)
 - [Download](#download)
@@ -22,7 +23,7 @@ Click for full video
 
 ## Usage
 
-- Run `grout.exe` or `cargo run`. Program will run in the background and can be accessed via the system tray icon.
+- Run `grout.exe` or `cargo run`. Program will run in the background and options can be accessed by right clicking the system tray icon.
 - Activate the windowing grid with hotkey `CRTL + ALT + S`.
 - Increase / decrease grid rows / columns with `CTRL + arrows`.
 - Hovering cursor over the grid will show a preview of that zone in the window.
