@@ -1,6 +1,6 @@
 [package]
 name = "grout"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["tarkah <admin@tarkah.dev>"]
 edition = "2018"
 
