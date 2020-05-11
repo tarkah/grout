@@ -14,8 +14,8 @@ use winapi::um::wingdi::{CreateSolidBrush, RGB};
 use winapi::um::winuser::{
     CreateWindowExW, DefWindowProcW, DispatchMessageW, InvalidateRect, LoadCursorW, PeekMessageW,
     RegisterClassExW, SendMessageW, TranslateMessage, IDC_ARROW, VK_CONTROL, VK_DOWN, VK_ESCAPE,
-    VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONUP, WM_MOUSELEAVE,
-    WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP,
+    WM_MOUSELEAVE, WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 use crate::common::{get_work_area, Rect};
@@ -161,13 +161,22 @@ unsafe extern "system" fn callback(
                 false
             }
         }
-        WM_LBUTTONUP => {
+        WM_LBUTTONDOWN => {
             let x = LOWORD(lParam as u32) as i32;
             let y = HIWORD(lParam as u32) as i32;
 
             let mut grid = GRID.lock().unwrap();
 
-            if let Some(mut rect) = grid.select_tile((x, y)) {
+            let repaint = grid.select_tile((x, y));
+
+            grid.cursor_down = true;
+
+            repaint
+        }
+        WM_LBUTTONUP => {
+            let mut grid = GRID.lock().unwrap();
+
+            let repaint = if let Some(mut rect) = grid.selected_area() {
                 if let Some(mut active_window) = grid.active_window {
                     let border_adj = active_window.transparent_border();
 
@@ -189,7 +198,11 @@ unsafe extern "system" fn callback(
                 true
             } else {
                 false
-            }
+            };
+
+            grid.cursor_down = false;
+
+            repaint
         }
         WM_MOUSELEAVE => {
             GRID.lock().unwrap().unhighlight_all_tiles();

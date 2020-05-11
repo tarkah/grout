@@ -18,6 +18,7 @@ const TILE_HEIGHT: u32 = 48;
 pub struct Grid {
     pub shift_down: bool,
     pub control_down: bool,
+    pub cursor_down: bool,
     pub selected_tile: Option<(usize, usize)>,
     pub hovered_tile: Option<(usize, usize)>,
     pub active_window: Option<Window>,
@@ -115,6 +116,7 @@ impl Default for Grid {
         Grid {
             shift_down: false,
             control_down: false,
+            cursor_down: false,
             selected_tile: None,
             hovered_tile: None,
             active_window: None,
@@ -135,6 +137,7 @@ impl Grid {
     pub fn reset(&mut self) {
         self.shift_down = false;
         self.control_down = false;
+        self.cursor_down = false;
         self.selected_tile = None;
         self.hovered_tile = None;
         self.active_window = None;
@@ -294,7 +297,7 @@ impl Grid {
     }
 
     unsafe fn shift_hover_and_calc_rect(&mut self, highlight: bool) -> Option<Rect> {
-        if self.shift_down {
+        if self.shift_down || self.cursor_down {
             if let Some(selected_tile) = self.selected_tile {
                 if let Some(hovered_tile) = self.hovered_tile {
                     let selected_zone = self.zone_area(selected_tile.0, selected_tile.1);
@@ -369,13 +372,12 @@ impl Grid {
         None
     }
 
-    /// Returns true if a change in selected tile
-    pub unsafe fn select_tile(&mut self, point: (i32, i32)) -> Option<Rect> {
-        if let Some(shift_rect) = self.shift_hover_and_calc_rect(false) {
-            return Some(shift_rect);
+    pub unsafe fn select_tile(&mut self, point: (i32, i32)) -> bool {
+        if self.cursor_down || self.shift_down {
+            return false;
         }
 
-        let previous_selected = self.selected_tile;
+        let previously_selected = self.selected_tile;
 
         for row in 0..self.rows() {
             for column in 0..self.columns() {
@@ -391,9 +393,15 @@ impl Grid {
             }
         }
 
-        if previous_selected == self.selected_tile {
-            None
-        } else if let Some(selected_tile) = self.selected_tile {
+        self.selected_tile != previously_selected
+    }
+
+    pub unsafe fn selected_area(&mut self) -> Option<Rect> {
+        if let Some(shift_rect) = self.shift_hover_and_calc_rect(false) {
+            return Some(shift_rect);
+        }
+
+        if let Some(selected_tile) = self.selected_tile {
             Some(self.zone_area(selected_tile.0, selected_tile.1))
         } else {
             None
