@@ -49,8 +49,8 @@ pub fn spawn_grid_window(close_msg: Receiver<()>) {
             class_name.as_ptr(),
             ptr::null(),
             WS_POPUP,
-            work_area.width / 2 - dimensions.0 as i32 / 2,
-            work_area.height / 2 - dimensions.1 as i32 / 2,
+            work_area.width / 2 - dimensions.0 as i32 / 2 + work_area.x,
+            work_area.height / 2 - dimensions.1 as i32 / 2 + work_area.y,
             dimensions.0 as i32,
             dimensions.1 as i32,
             ptr::null_mut(),
@@ -72,10 +72,8 @@ pub fn spawn_grid_window(close_msg: Receiver<()>) {
                 recv(close_msg) -> _ => {
                     break;
                 }
-                default => {}
+                default(Duration::from_millis(10)) => {}
             }
-
-            thread::sleep(Duration::from_millis(10));
         }
     });
 }
@@ -109,28 +107,28 @@ unsafe extern "system" fn callback(
             VK_RIGHT => {
                 if GRID.lock().unwrap().control_down {
                     GRID.lock().unwrap().add_column();
-                    GRID.lock().unwrap().reposition(Window(hWnd));
+                    GRID.lock().unwrap().reposition();
                 }
                 false
             }
             VK_LEFT => {
                 if GRID.lock().unwrap().control_down {
                     GRID.lock().unwrap().remove_column();
-                    GRID.lock().unwrap().reposition(Window(hWnd));
+                    GRID.lock().unwrap().reposition();
                 }
                 false
             }
             VK_UP => {
                 if GRID.lock().unwrap().control_down {
                     GRID.lock().unwrap().add_row();
-                    GRID.lock().unwrap().reposition(Window(hWnd));
+                    GRID.lock().unwrap().reposition();
                 }
                 false
             }
             VK_DOWN => {
                 if GRID.lock().unwrap().control_down {
                     GRID.lock().unwrap().remove_row();
-                    GRID.lock().unwrap().reposition(Window(hWnd));
+                    GRID.lock().unwrap().reposition();
                 }
                 false
             }

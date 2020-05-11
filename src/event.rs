@@ -15,6 +15,7 @@ use winapi::um::winuser::{
     WINEVENT_OUTOFCONTEXT,
 };
 
+use crate::common::get_active_monitor_name;
 use crate::window::Window;
 use crate::Message;
 use crate::CHANNEL;
@@ -42,10 +43,33 @@ pub fn spawn_foreground_hook(close_msg: Receiver<()>) {
                 recv(close_msg) -> _ => {
                     break;
                 }
-                default => {}
+                default(Duration::from_millis(10)) => {}
+            }
+        }
+    });
+}
+
+pub fn spawn_track_monitor_thread(close_msg: Receiver<()>) {
+    thread::spawn(move || unsafe {
+        let sender = &CHANNEL.0.clone();
+
+        let mut previous_monitor = get_active_monitor_name();
+
+        loop {
+            let current_monitor = get_active_monitor_name();
+
+            if current_monitor != previous_monitor {
+                previous_monitor = current_monitor.clone();
+
+                let _ = sender.send(Message::MonitorChange);
             }
 
-            thread::sleep(Duration::from_millis(10));
+            select! {
+                recv(close_msg) -> _ => {
+                    break;
+                }
+                default(Duration::from_millis(10)) => {}
+            }
         }
     });
 }

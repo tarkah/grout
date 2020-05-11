@@ -13,7 +13,7 @@ use winapi::um::winuser::{
 };
 
 use crate::common::Rect;
-use crate::event::spawn_foreground_hook;
+use crate::event::{spawn_foreground_hook, spawn_track_monitor_thread};
 use crate::grid::Grid;
 use crate::hotkey::{spawn_hotkey_thread, HotkeyType};
 use crate::tray::spawn_sys_tray;
@@ -32,7 +32,7 @@ lazy_static! {
     static ref GRID: Arc<Mutex<Grid>> = {
         let config = config::load_config();
 
-        Arc::new(Mutex::new(Grid::from(config)))
+        Arc::new(Mutex::new(Grid::from(&config)))
     };
 }
 
@@ -43,6 +43,7 @@ pub enum Message {
     HotkeyPressed(HotkeyType),
     TrackMouse(Window),
     ActiveWindowChange(Window),
+    MonitorChange,
     MouseLeft,
     InitializeWindows,
     CloseWindows,
@@ -91,6 +92,7 @@ fn main() {
                         grid.grid_window = Some(window);
                         grid.active_window = Some(Window(GetForegroundWindow()));
 
+                        spawn_track_monitor_thread(close_channel.1.clone());
                         spawn_preview_window(close_channel.1.clone());
                     }
                     Message::HighlightZone(rect) => {
@@ -132,6 +134,18 @@ fn main() {
                             grid.active_window = Some(window);
                         }
                     }
+                    Message::MonitorChange => unsafe {
+                        let mut grid = GRID.lock().unwrap();
+
+                        let active_window = grid.active_window;
+
+                        *grid = Grid::from(&config);
+
+                        grid.grid_window = grid_window;
+                        grid.active_window = active_window;
+
+                        grid.reposition();
+                    }
                     Message::InitializeWindows => {
                         spawn_grid_window(close_channel.1.clone());
                     }
@@ -139,7 +153,7 @@ fn main() {
                         preview_window.take();
                         grid_window.take();
 
-                        for _ in 0..3 {
+                        for _ in 0..4 {
                             let _ = close_channel.0.send(());
                         }
 
