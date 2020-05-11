@@ -138,11 +138,13 @@ fn main() {
                         let mut grid = GRID.lock().unwrap();
 
                         let active_window = grid.active_window;
+                        let quick_resize = grid.quick_resize;
 
                         *grid = Grid::from(&config);
 
                         grid.grid_window = grid_window;
                         grid.active_window = active_window;
+                        grid.quick_resize = quick_resize;
 
                         grid.reposition();
                     }
