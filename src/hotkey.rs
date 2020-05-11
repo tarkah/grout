@@ -23,10 +23,10 @@ pub fn spawn_hotkey_thread(hotkey_str: &str, hotkey_type: HotkeyType) {
         .map(|s| s.trim().to_string())
         .collect();
 
-    if !(2..5).contains(&hotkey.len()) {
+    if !(2..6).contains(&hotkey.len()) {
         unsafe {
             report_and_exit(&format!(
-                "Invalid hotkey <{}>: Combination must be between 2 to 4 keys long.",
+                "Invalid hotkey <{}>: Combination must be between 2 to 5 keys long.",
                 hotkey_str
             ));
         }
