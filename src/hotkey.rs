@@ -1,17 +1,16 @@
 use std::mem;
-use std::process;
 use std::ptr;
 use std::thread;
 
 use winapi::um::winuser::{
-    DispatchMessageW, GetMessageW, MessageBoxW, RegisterHotKey, TranslateMessage,
-    GetKeyboardLayout, VkKeyScanExA, MB_OK, MOD_ALT, MOD_CONTROL, MOD_SHIFT, 
-    MOD_NOREPEAT, WM_HOTKEY,
+    DispatchMessageW, GetKeyboardLayout, GetMessageW, RegisterHotKey, TranslateMessage,
+    VkKeyScanExW, MOD_ALT, MOD_CONTROL, MOD_NOREPEAT, MOD_SHIFT, MOD_WIN, WM_HOTKEY,
 };
 
+use crate::common::report_and_exit;
+use crate::config;
 use crate::Message;
 use crate::CHANNEL;
-use crate::config;
 
 pub fn spawn_hotkey_thread() {
     let mut hotkey: Vec<String> = config::load_config().hotkey
@@ -77,16 +76,3 @@ unsafe fn get_vkcode(key_char: char) -> u32 {
     vk_code[1] as u32
 }
 
-unsafe fn report_and_exit(error_msg: &str) {
-    let mut error_msg = error_msg.encode_utf16().collect::<Vec<_>>();
-    error_msg.push(0);
-
-    MessageBoxW(
-        ptr::null_mut(),
-        error_msg.as_mut_ptr(),
-        ptr::null_mut(),
-        MB_OK,
-    );
-
-    process::exit(1);
-}
