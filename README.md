@@ -38,5 +38,5 @@ See [example config](https://github.com/tarkah/grout/wiki/Example-Config) in the
 
 ## TODO
 
-- Multi-monitor support
 - Option to autostart
+- Switchable "profiles" via F-keys
