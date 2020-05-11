@@ -15,7 +15,7 @@ use winapi::um::winuser::{
 use crate::common::Rect;
 use crate::event::spawn_foreground_hook;
 use crate::grid::Grid;
-use crate::hotkey::spawn_hotkey_thread;
+use crate::hotkey::{spawn_hotkey_thread, HotkeyType};
 use crate::tray::spawn_sys_tray;
 use crate::window::{spawn_grid_window, spawn_preview_window, Window};
 
@@ -40,7 +40,7 @@ pub enum Message {
     PreviewWindow(Window),
     GridWindow(Window),
     HighlightZone(Rect),
-    HotkeyPressed,
+    HotkeyPressed(HotkeyType),
     TrackMouse(Window),
     ActiveWindowChange(Window),
     MouseLeft,
@@ -55,7 +55,14 @@ fn main() {
 
     let close_channel = bounded::<()>(3);
 
-    spawn_hotkey_thread();
+    let config = config::load_config();
+
+    spawn_hotkey_thread(&config.hotkey, HotkeyType::Main);
+
+    if let Some(hotkey) = &config.hotkey_quick_resize {
+        spawn_hotkey_thread(hotkey, HotkeyType::QuickResize);
+    }
+
     unsafe {
         spawn_sys_tray();
     }
@@ -92,11 +99,15 @@ fn main() {
 
                         preview_window.set_pos(rect, Some(grid_window));
                     }
-                    Message::HotkeyPressed => {
+                    Message::HotkeyPressed(hotkey_type) => {
                         if preview_window.is_some() && grid_window.is_some() {
                             let _ = sender.send(Message::CloseWindows);
                         } else {
                             let _ = sender.send(Message::InitializeWindows);
+
+                            if hotkey_type == HotkeyType::QuickResize {
+                                GRID.lock().unwrap().quick_resize = true;
+                            }
                         }
                     }
                     Message::TrackMouse(window) => unsafe {
@@ -135,7 +146,6 @@ fn main() {
                         let mut grid = GRID.lock().unwrap();
 
                         grid.reset();
-                        grid.grid_window = None;
                         track_mouse = false;
                     }
                     Message::Exit => {

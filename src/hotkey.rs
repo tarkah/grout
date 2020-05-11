@@ -8,37 +8,45 @@ use winapi::um::winuser::{
 };
 
 use crate::common::report_and_exit;
-use crate::config;
 use crate::Message;
 use crate::CHANNEL;
 
-pub fn spawn_hotkey_thread() {
-    let mut hotkey: Vec<String> = config::load_config()
-        .hotkey
+#[derive(PartialEq, Clone, Copy)]
+pub enum HotkeyType {
+    Main,
+    QuickResize,
+}
+
+pub fn spawn_hotkey_thread(hotkey_str: &str, hotkey_type: HotkeyType) {
+    let mut hotkey: Vec<String> = hotkey_str
         .split('+')
         .map(|s| s.trim().to_string())
         .collect();
 
     if !(2..5).contains(&hotkey.len()) {
         unsafe {
-            report_and_exit("Invalid hotkey: Combination must be between 2 to 4 keys long.");
+            report_and_exit(&format!(
+                "Invalid hotkey <{}>: Combination must be between 2 to 4 keys long.",
+                hotkey_str
+            ));
         }
     }
 
     let virtual_key_char = hotkey.pop().unwrap().chars().next().unwrap();
 
+    let hotkey_str = hotkey_str.to_owned();
     thread::spawn(move || unsafe {
         let sender = &CHANNEL.0.clone();
 
         let result = RegisterHotKey(
             ptr::null_mut(),
             0,
-            compile_modifiers(&hotkey) | MOD_NOREPEAT as u32,
+            compile_modifiers(&hotkey, &hotkey_str) | MOD_NOREPEAT as u32,
             get_vkcode(virtual_key_char),
         );
 
         if result == 0 {
-            report_and_exit("Failed to assign hot key. Either program is already running or hotkey is already assigned in another program.");
+            report_and_exit(&format!("Failed to assign hot key <{}>. Either program is already running or hotkey is already assigned in another program.", hotkey_str));
         }
 
         let mut msg = mem::zeroed();
@@ -47,13 +55,13 @@ pub fn spawn_hotkey_thread() {
             DispatchMessageW(&msg);
 
             if msg.message == WM_HOTKEY {
-                let _ = sender.send(Message::HotkeyPressed);
+                let _ = sender.send(Message::HotkeyPressed(hotkey_type));
             }
         }
     });
 }
 
-fn compile_modifiers(activators: &[String]) -> u32 {
+fn compile_modifiers(activators: &[String], hotkey_str: &str) -> u32 {
     let mut code: u32 = 0;
     for key in activators {
         match key.as_str() {
@@ -63,7 +71,7 @@ fn compile_modifiers(activators: &[String]) -> u32 {
             "WIN" => code |= MOD_WIN as u32,
 
             _ => unsafe {
-                report_and_exit("Invalid hotkey: Unidentified modifier in hotkey combination. Valid modifiers are CTRL, ALT, SHIFT, WIN.")
+                report_and_exit(&format!("Invalid hotkey <{}>: Unidentified modifier in hotkey combination. Valid modifiers are CTRL, ALT, SHIFT, WIN.", hotkey_str))
             },
         }
     }

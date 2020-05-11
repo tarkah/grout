@@ -179,6 +179,10 @@ unsafe extern "system" fn callback(
                         active_window.set_pos(rect, None);
 
                         grid.previous_resize = Some((active_window, rect));
+
+                        if grid.quick_resize {
+                            let _ = sender.send(Message::CloseWindows);
+                        }
                     }
                 }
 

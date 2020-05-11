@@ -11,8 +11,11 @@ margins: 10
 # Padding between edge of monitor and windows, in pixels
 window_padding: 10
 
-# Hotkey to activate. Valid modifiers are CTRL, ALT, SHIFT, WIN
+# Hotkey to activate grid. Valid modifiers are CTRL, ALT, SHIFT, WIN
 hotkey: CTRL+ALT+S
+
+# Hotkey to activate grid for a quick resize. Grid will automatically close after resize operation.
+#hotkey_quick_resize: CTRL+ALT+Q
 ";
 
 pub fn load_config() -> Config {
@@ -45,6 +48,7 @@ pub struct Config {
     pub margins: u8,
     pub window_padding: u8,
     pub hotkey: String,
+    pub hotkey_quick_resize: Option<String>,
 }
 
 impl Default for Config {
@@ -53,6 +57,7 @@ impl Default for Config {
             margins: 10,
             window_padding: 10,
             hotkey: "CTRL+ALT+S".to_string(),
+            hotkey_quick_resize: None,
         }
     }
 }
