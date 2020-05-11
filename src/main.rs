@@ -7,7 +7,10 @@ use std::sync::{Arc, Mutex};
 use crossbeam_channel::{bounded, select, unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
 
-use winapi::um::winuser::{SetForegroundWindow, TrackMouseEvent, TME_LEAVE, TRACKMOUSEEVENT};
+use winapi::um::winuser::{
+    GetForegroundWindow, SetForegroundWindow, ShowWindow, TrackMouseEvent, SW_SHOW, TME_LEAVE,
+    TRACKMOUSEEVENT,
+};
 
 use crate::common::Rect;
 use crate::event::spawn_foreground_hook;
@@ -68,14 +71,19 @@ fn main() {
                     Message::PreviewWindow(window) => unsafe {
                         preview_window = Some(window);
 
+                        spawn_foreground_hook(close_channel.1.clone());
+
+                        ShowWindow(grid_window.as_ref().unwrap().0, SW_SHOW);
                         SetForegroundWindow(grid_window.as_ref().unwrap().0);
                     }
-                    Message::GridWindow(window) => {
+                    Message::GridWindow(window) => unsafe {
                         grid_window = Some(window);
 
-                        GRID.lock().unwrap().grid_window = Some(window);
+                        let mut grid = GRID.lock().unwrap();
 
-                        spawn_foreground_hook(close_channel.1.clone());
+                        grid.grid_window = Some(window);
+                        grid.active_window = Some(Window(GetForegroundWindow()));
+
                         spawn_preview_window(close_channel.1.clone());
                     }
                     Message::HighlightZone(rect) => {

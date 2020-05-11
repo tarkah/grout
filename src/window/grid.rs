@@ -15,7 +15,7 @@ use winapi::um::winuser::{
     CreateWindowExW, DefWindowProcW, DispatchMessageW, InvalidateRect, LoadCursorW, PeekMessageW,
     RegisterClassExW, SendMessageW, TranslateMessage, IDC_ARROW, VK_CONTROL, VK_DOWN, VK_ESCAPE,
     VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONUP, WM_MOUSELEAVE,
-    WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP, WS_VISIBLE,
+    WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 use crate::common::{get_work_area, Rect};
@@ -48,7 +48,7 @@ pub fn spawn_grid_window(close_msg: Receiver<()>) {
             WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
             class_name.as_ptr(),
             ptr::null(),
-            WS_POPUP | WS_VISIBLE,
+            WS_POPUP,
             work_area.width / 2 - dimensions.0 as i32 / 2,
             work_area.height / 2 - dimensions.1 as i32 / 2,
             dimensions.0 as i32,
