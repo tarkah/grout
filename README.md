@@ -39,5 +39,4 @@ See [example config](https://github.com/tarkah/grout/wiki/Example-Config) in the
 ## TODO
 
 - Multi-monitor support
-- Settings window with hotkey configuration
 - Option to autostart
