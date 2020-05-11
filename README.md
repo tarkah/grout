@@ -22,12 +22,13 @@ Click for full video
 
 ## Usage
 
-- Run `grout.exe` or `cargo run`. Program will run in the background.
+- Run `grout.exe` or `cargo run`. Program will run in the background and can be accessed via the system tray icon.
 - Activate the windowing grid with hotkey `CRTL + ALT + S`.
 - Increase / decrease grid rows / columns with `CTRL + arrows`.
 - Hovering cursor over the grid will show a preview of that zone in the window.
 - Select a window you want resized, then click on a tile in the grid. Window will resize to that zone.
 - Hold `SHIFT` down while hovering after a selection, zone will increase in size across all tiles. Select again to resize to larger zone.
+- Resizing can also be achieved by click-drag-release. Click & hold cursor down, drag cursor across multiple tiles and release to make selection.
 
 ## Config
 
