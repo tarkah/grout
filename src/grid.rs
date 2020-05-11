@@ -23,6 +23,7 @@ pub struct Grid {
     pub active_window: Option<Window>,
     pub grid_window: Option<Window>,
     pub previous_resize: Option<(Window, Rect)>,
+    pub quick_resize: bool,
     grid_margins: u8,
     zone_margins: u8,
     border_margins: u8,
@@ -119,6 +120,7 @@ impl Default for Grid {
             active_window: None,
             grid_window: None,
             previous_resize: None,
+            quick_resize: false,
             grid_margins: 3,
             zone_margins: 10,
             border_margins: 10,
@@ -131,10 +133,14 @@ impl Default for Grid {
 
 impl Grid {
     pub fn reset(&mut self) {
-        self.control_down = false;
         self.shift_down = false;
+        self.control_down = false;
         self.selected_tile = None;
+        self.hovered_tile = None;
         self.active_window = None;
+        self.grid_window = None;
+        self.previous_resize = None;
+        self.quick_resize = false;
 
         self.tiles.iter_mut().for_each(|row| {
             row.iter_mut().for_each(|tile| {
