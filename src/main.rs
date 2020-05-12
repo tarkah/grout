@@ -152,7 +152,11 @@ fn main() {
                     }
                     Message::InitializeWindows => {
                         let mut grid = GRID.lock().unwrap();
+                        let quick_resize = grid.quick_resize;
+
                         *grid = Grid::from(&*CONFIG.lock().unwrap());
+
+                        grid.quick_resize = quick_resize;
 
                         spawn_grid_window(close_channel.1.clone());
                     }
