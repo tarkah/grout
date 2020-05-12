@@ -19,6 +19,7 @@ use crate::hotkey::{spawn_hotkey_thread, HotkeyType};
 use crate::tray::spawn_sys_tray;
 use crate::window::{spawn_grid_window, spawn_preview_window, Window};
 
+mod autostart;
 mod common;
 mod config;
 mod event;
@@ -29,11 +30,8 @@ mod window;
 
 lazy_static! {
     static ref CHANNEL: (Sender<Message>, Receiver<Message>) = unbounded();
-    static ref GRID: Arc<Mutex<Grid>> = {
-        let config = config::load_config();
-
-        Arc::new(Mutex::new(Grid::from(&config)))
-    };
+    static ref CONFIG: Arc<Mutex<config::Config>> = Arc::new(Mutex::new(config::load_config()));
+    static ref GRID: Arc<Mutex<Grid>> = Arc::new(Mutex::new(Grid::from(&*CONFIG.lock().unwrap())));
 }
 
 pub enum Message {
@@ -56,7 +54,11 @@ fn main() {
 
     let close_channel = bounded::<()>(3);
 
-    let config = config::load_config();
+    let config = CONFIG.lock().unwrap().clone();
+
+    unsafe {
+        autostart::toggle_autostart_registry_key(config.auto_start);
+    }
 
     spawn_hotkey_thread(&config.hotkey, HotkeyType::Main);
 
@@ -140,7 +142,7 @@ fn main() {
                         let active_window = grid.active_window;
                         let quick_resize = grid.quick_resize;
 
-                        *grid = Grid::from(&config);
+                        *grid = Grid::from(&*CONFIG.lock().unwrap());
 
                         grid.grid_window = grid_window;
                         grid.active_window = active_window;

@@ -13,21 +13,25 @@ use winapi::um::shellapi::{
 };
 use winapi::um::wingdi::{CreateSolidBrush, RGB};
 use winapi::um::winuser::{
-    CreateIconFromResourceEx, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu,
-    DispatchMessageW, GetCursorPos, GetMessageW, InsertMenuW, MessageBoxW, PostMessageW,
-    PostQuitMessage, RegisterClassExW, SendMessageW, SetFocus, SetForegroundWindow,
-    SetMenuDefaultItem, TrackPopupMenu, TranslateMessage, LR_DEFAULTCOLOR, MB_ICONINFORMATION,
-    MB_OK, MF_BYPOSITION, MF_STRING, SW_SHOW, TPM_LEFTALIGN, TPM_NONOTIFY, TPM_RETURNCMD,
-    TPM_RIGHTBUTTON, WM_APP, WM_CLOSE, WM_COMMAND, WM_CREATE, WM_INITMENUPOPUP, WM_LBUTTONDBLCLK,
-    WM_RBUTTONUP, WNDCLASSEXW, WS_EX_NOACTIVATE,
+    CheckMenuItem, CreateIconFromResourceEx, CreatePopupMenu, CreateWindowExW, DefWindowProcW,
+    DestroyMenu, DispatchMessageW, GetCursorPos, GetMessageW, InsertMenuW, MessageBoxW,
+    PostMessageW, PostQuitMessage, RegisterClassExW, SendMessageW, SetFocus, SetForegroundWindow,
+    SetMenuDefaultItem, SetMenuItemBitmaps, TrackPopupMenu, TranslateMessage, LR_DEFAULTCOLOR,
+    MB_ICONINFORMATION, MB_OK, MF_BYPOSITION, MF_CHECKED, MF_STRING, MF_UNCHECKED, SW_SHOW,
+    TPM_LEFTALIGN, TPM_NONOTIFY, TPM_RETURNCMD, TPM_RIGHTBUTTON, WM_APP, WM_CLOSE, WM_COMMAND,
+    WM_CREATE, WM_INITMENUPOPUP, WM_LBUTTONDBLCLK, WM_RBUTTONUP, WNDCLASSEXW, WS_EX_NOACTIVATE,
 };
 
+use crate::autostart;
+use crate::config;
 use crate::Message;
 use crate::CHANNEL;
+use crate::CONFIG;
 
 const ID_ABOUT: u16 = 2000;
 const ID_EXIT: u16 = 2001;
 const ID_CONFIG: u16 = 2002;
+const ID_AUTOSTART: u16 = 2003;
 static mut MODAL_SHOWN: bool = false;
 
 pub unsafe fn spawn_sys_tray() {
@@ -120,9 +124,13 @@ unsafe fn show_popup_menu(hwnd: HWND) {
     let mut about = about.encode_utf16().collect::<Vec<_>>();
     about.push(0);
 
-    let config = "Open Config";
-    let mut config = config.encode_utf16().collect::<Vec<_>>();
-    config.push(0);
+    let auto_start = "Launch at startup";
+    let mut auto_start = auto_start.encode_utf16().collect::<Vec<_>>();
+    auto_start.push(0);
+
+    let open_config = "Open config";
+    let mut open_config = open_config.encode_utf16().collect::<Vec<_>>();
+    open_config.push(0);
 
     let exit = "Exit";
     let mut exit = exit.encode_utf16().collect::<Vec<_>>();
@@ -140,13 +148,31 @@ unsafe fn show_popup_menu(hwnd: HWND) {
         menu,
         1,
         MF_BYPOSITION | MF_STRING,
-        ID_CONFIG as usize,
-        config.as_mut_ptr(),
+        ID_AUTOSTART as usize,
+        auto_start.as_mut_ptr(),
     );
+
+    SetMenuItemBitmaps(menu, 1, MF_BYPOSITION, ptr::null_mut(), ptr::null_mut());
+
+    let checked = if CONFIG.lock().unwrap().auto_start {
+        MF_CHECKED
+    } else {
+        MF_UNCHECKED
+    };
+
+    CheckMenuItem(menu, 1, MF_BYPOSITION | checked);
 
     InsertMenuW(
         menu,
         2,
+        MF_BYPOSITION | MF_STRING,
+        ID_CONFIG as usize,
+        open_config.as_mut_ptr(),
+    );
+
+    InsertMenuW(
+        menu,
+        3,
         MF_BYPOSITION | MF_STRING,
         ID_EXIT as usize,
         exit.as_mut_ptr(),
@@ -222,6 +248,14 @@ unsafe extern "system" fn callback(
                     show_about();
 
                     MODAL_SHOWN = false;
+                }
+                ID_AUTOSTART => {
+                    config::toggle_autostart();
+
+                    let mut config = CONFIG.lock().unwrap();
+                    *config = config::load_config();
+
+                    autostart::toggle_autostart_registry_key(config.auto_start);
                 }
                 ID_CONFIG => {
                     if let Some(mut config_path) = dirs::config_dir() {
