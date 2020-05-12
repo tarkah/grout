@@ -151,6 +151,9 @@ fn main() {
                         grid.reposition();
                     }
                     Message::InitializeWindows => {
+                        let mut grid = GRID.lock().unwrap();
+                        *grid = Grid::from(&*CONFIG.lock().unwrap());
+
                         spawn_grid_window(close_channel.1.clone());
                     }
                     Message::CloseWindows => {
