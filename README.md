@@ -39,5 +39,4 @@ See [example config](https://github.com/tarkah/grout/wiki/Example-Config) in the
 
 ## TODO
 
-- Option to autostart
 - Switchable "profiles" via F-keys
