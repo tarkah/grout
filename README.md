@@ -7,7 +7,6 @@ A simple tiling window manager for Windows, written in Rust. Inspired by Budgie'
 - [Download](#download)
 - [Usage](#usage)
 - [Config](#config)
-- [TODO](#todo)
 
 ## Demo
 
@@ -37,7 +36,3 @@ Click for full video
 See [example config](https://github.com/tarkah/grout/wiki/Example-Config) in the wiki for a full list of all options.
 
 - A configuration file will be created at `%APPDATA%\grout\config.yml` that can be customized. You can also open the config file from the system tray icon.
-
-## TODO
-
-- Switchable "profiles" via F-keys
