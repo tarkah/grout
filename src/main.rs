@@ -32,6 +32,7 @@ lazy_static! {
     static ref CHANNEL: (Sender<Message>, Receiver<Message>) = unbounded();
     static ref CONFIG: Arc<Mutex<config::Config>> = Arc::new(Mutex::new(config::load_config()));
     static ref GRID: Arc<Mutex<Grid>> = Arc::new(Mutex::new(Grid::from(&*CONFIG.lock().unwrap())));
+    static ref ACTIVE_PROFILE: Arc<Mutex<String>> = Arc::new(Mutex::new("Default".to_owned()));
 }
 
 pub enum Message {
@@ -41,6 +42,7 @@ pub enum Message {
     HotkeyPressed(HotkeyType),
     TrackMouse(Window),
     ActiveWindowChange(Window),
+    ProfileChange(&'static str),
     MonitorChange,
     MouseLeft,
     InitializeWindows,
@@ -137,6 +139,25 @@ fn main() {
                         }
                     }
                     Message::MonitorChange => unsafe {
+                        let mut grid = GRID.lock().unwrap();
+
+                        let active_window = grid.active_window;
+                        let quick_resize = grid.quick_resize;
+
+                        *grid = Grid::from(&*CONFIG.lock().unwrap());
+
+                        grid.grid_window = grid_window;
+                        grid.active_window = active_window;
+                        grid.quick_resize = quick_resize;
+
+                        grid.reposition();
+                    }
+                    Message::ProfileChange(profile) => unsafe {
+                        {
+                            let mut active_profile = ACTIVE_PROFILE.lock().unwrap();
+                            *active_profile = profile.to_owned();
+                        }
+
                         let mut grid = GRID.lock().unwrap();
 
                         let active_window = grid.active_window;
