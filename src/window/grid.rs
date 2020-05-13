@@ -14,8 +14,9 @@ use winapi::um::wingdi::{CreateSolidBrush, RGB};
 use winapi::um::winuser::{
     CreateWindowExW, DefWindowProcW, DispatchMessageW, InvalidateRect, LoadCursorW, PeekMessageW,
     RegisterClassExW, SendMessageW, TranslateMessage, IDC_ARROW, VK_CONTROL, VK_DOWN, VK_ESCAPE,
-    VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP,
-    WM_MOUSELEAVE, WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    VK_F1, VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP, WM_KEYDOWN,
+    WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSELEAVE, WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW,
+    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 use crate::common::{get_work_area, Rect};
@@ -141,6 +142,30 @@ unsafe extern "system" fn callback(
             }
             VK_SHIFT => {
                 GRID.lock().unwrap().shift_down = false;
+                false
+            }
+            VK_F1 => {
+                let _ = sender.send(Message::ProfileChange("Default"));
+                false
+            }
+            VK_F2 => {
+                let _ = sender.send(Message::ProfileChange("Profile2"));
+                false
+            }
+            VK_F3 => {
+                let _ = sender.send(Message::ProfileChange("Profile3"));
+                false
+            }
+            VK_F4 => {
+                let _ = sender.send(Message::ProfileChange("Profile4"));
+                false
+            }
+            VK_F5 => {
+                let _ = sender.send(Message::ProfileChange("Profile5"));
+                false
+            }
+            VK_F6 => {
+                let _ = sender.send(Message::ProfileChange("Profile6"));
                 false
             }
             _ => false,
