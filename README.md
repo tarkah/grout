@@ -30,6 +30,7 @@ Click for full video
 - Select a window you want resized, then click on a tile in the grid. Window will resize to that zone.
 - Hold `SHIFT` down while hovering after a selection, zone will increase in size across all tiles. Select again to resize to larger zone.
 - Resizing can also be achieved by click-drag-release. Click & hold cursor down, drag cursor across multiple tiles and release to make selection.
+- F1 - F6 can be used to toggle between saved profiles. F1 is the default profile loaded when program is first started.
 
 ## Config
 
