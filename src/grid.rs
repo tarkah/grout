@@ -11,6 +11,7 @@ use winapi::um::winuser::{BeginPaint, EndPaint, FillRect, FrameRect, PAINTSTRUCT
 use crate::common::{get_active_monitor_name, get_work_area, Rect};
 use crate::config::Config;
 use crate::window::Window;
+use crate::ACTIVE_PROFILE;
 
 const TILE_WIDTH: u32 = 48;
 const TILE_HEIGHT: u32 = 48;
@@ -57,7 +58,7 @@ pub struct GridConfigKey {
 impl Default for GridConfigKey {
     fn default() -> Self {
         let monitor = unsafe { get_active_monitor_name() };
-        let profile = "Default".to_owned();
+        let profile = ACTIVE_PROFILE.lock().unwrap().clone();
 
         GridConfigKey { monitor, profile }
     }
