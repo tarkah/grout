@@ -80,7 +80,11 @@ fn compile_modifiers(activators: &[String], hotkey_str: &str) -> u32 {
 
 unsafe fn get_vkcode(key_char: char) -> u32 {
     let keyboard_layout = GetKeyboardLayout(0);
-    let vk_code = VkKeyScanExW(key_char as u16, keyboard_layout).to_be_bytes();
+    let vk_code = VkKeyScanExW(key_char as u16, keyboard_layout);
 
-    vk_code[1] as u32
+    if vk_code == -1 {
+        report_and_exit(&format!("Invalid key {} in hotkey combination.", key_char));
+    }
+
+    vk_code.to_be_bytes()[1] as u32
 }
