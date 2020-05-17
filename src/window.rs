@@ -3,7 +3,7 @@ use std::ptr;
 
 use winapi::shared::windef::HWND;
 use winapi::um::winuser::{
-    GetForegroundWindow, GetWindowInfo, GetWindowRect, SetWindowPos, SWP_NOACTIVATE, WINDOWINFO,
+    GetWindowInfo, GetWindowRect, SetWindowPos, SWP_NOACTIVATE, WINDOWINFO, ShowWindow, SW_RESTORE
 };
 
 use crate::common::Rect;
@@ -20,13 +20,6 @@ pub struct Window(pub HWND);
 unsafe impl Send for Window {}
 
 impl Window {
-    pub fn get_foreground() -> Self {
-        unsafe {
-            let hwnd = GetForegroundWindow();
-            Window(hwnd)
-        }
-    }
-
     pub fn rect(self) -> Rect {
         unsafe {
             let mut rect = mem::zeroed();
@@ -39,6 +32,7 @@ impl Window {
 
     pub fn set_pos(&mut self, rect: Rect, insert_after: Option<Window>) {
         unsafe {
+            ShowWindow(self.0, SW_RESTORE);
             SetWindowPos(
                 self.0,
                 insert_after.unwrap_or_default().0,
