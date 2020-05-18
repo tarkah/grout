@@ -13,10 +13,10 @@ use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::{CreateSolidBrush, RGB};
 use winapi::um::winuser::{
     CreateWindowExW, DefWindowProcW, DispatchMessageW, InvalidateRect, LoadCursorW, PeekMessageW,
-    RegisterClassExW, SendMessageW, TranslateMessage, IDC_ARROW, VK_CONTROL, VK_DOWN, VK_ESCAPE,
-    VK_F1, VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_LEFT, VK_RIGHT, VK_SHIFT, VK_UP, WM_KEYDOWN,
-    WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSELEAVE, WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW,
-    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    RegisterClassExW, SendMessageW, ShowWindow, TranslateMessage, IDC_ARROW, SW_RESTORE,
+    VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_F1, VK_F2, VK_F3, VK_F4, VK_F5, VK_F6, VK_LEFT, VK_RIGHT,
+    VK_SHIFT, VK_UP, WM_KEYDOWN, WM_KEYUP, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MOUSELEAVE,
+    WM_MOUSEMOVE, WM_PAINT, WNDCLASSEXW, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 use crate::common::{get_work_area, Rect};
@@ -201,13 +201,15 @@ unsafe extern "system" fn callback(
 
             let repaint = if let Some(mut rect) = grid.selected_area() {
                 if let Some(mut active_window) = grid.active_window {
-                    let border_adj = active_window.transparent_border();
-
-                    rect.x -= border_adj.0;
-                    rect.width += border_adj.0 * 2;
-                    rect.height += border_adj.1;
-
                     if grid.previous_resize != Some((active_window, rect)) {
+                        ShowWindow(active_window.0, SW_RESTORE);
+
+                        let border_adj = active_window.transparent_border();
+
+                        rect.x -= border_adj.0;
+                        rect.width += border_adj.0 * 2;
+                        rect.height += border_adj.1;
+
                         active_window.set_pos(rect, None);
 
                         grid.previous_resize = Some((active_window, rect));

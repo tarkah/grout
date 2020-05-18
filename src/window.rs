@@ -2,9 +2,7 @@ use std::mem;
 use std::ptr;
 
 use winapi::shared::windef::HWND;
-use winapi::um::winuser::{
-    GetWindowInfo, GetWindowRect, SetWindowPos, SWP_NOACTIVATE, WINDOWINFO, ShowWindow, SW_RESTORE
-};
+use winapi::um::winuser::{GetWindowInfo, GetWindowRect, SetWindowPos, SWP_NOACTIVATE, WINDOWINFO};
 
 use crate::common::Rect;
 
@@ -32,7 +30,6 @@ impl Window {
 
     pub fn set_pos(&mut self, rect: Rect, insert_after: Option<Window>) {
         unsafe {
-            ShowWindow(self.0, SW_RESTORE);
             SetWindowPos(
                 self.0,
                 insert_after.unwrap_or_default().0,
