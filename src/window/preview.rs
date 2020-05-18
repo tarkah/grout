@@ -18,6 +18,7 @@ use winapi::um::winuser::{
     WS_EX_NOACTIVATE, WS_EX_TOPMOST, WS_EX_TRANSPARENT, WS_POPUP, WS_SYSMENU, WS_VISIBLE,
 };
 
+use crate::str_to_wide;
 use crate::window::Window;
 use crate::Message;
 use crate::CHANNEL;
@@ -26,9 +27,7 @@ pub fn spawn_preview_window(close_msg: Receiver<()>) {
     thread::spawn(move || unsafe {
         let hInstance = GetModuleHandleW(ptr::null());
 
-        let class_name = "Grout Zone Preview";
-        let mut class_name = class_name.encode_utf16().collect::<Vec<_>>();
-        class_name.push(0);
+        let class_name = str_to_wide!("Grout Zone Preview");
 
         let mut class = mem::zeroed::<WNDCLASSEXW>();
         class.cbSize = mem::size_of::<WNDCLASSEXW>() as u32;

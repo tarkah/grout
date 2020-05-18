@@ -9,6 +9,7 @@ use winapi::shared::{
     minwindef::{HIWORD, LOWORD, LPARAM, LRESULT, UINT, WPARAM},
     windef::HWND,
 };
+
 use winapi::um::libloaderapi::GetModuleHandleW;
 use winapi::um::wingdi::{CreateSolidBrush, RGB};
 use winapi::um::winuser::{
@@ -20,6 +21,7 @@ use winapi::um::winuser::{
 };
 
 use crate::common::{get_work_area, Rect};
+use crate::str_to_wide;
 use crate::window::Window;
 use crate::Message;
 use crate::{CHANNEL, GRID};
@@ -28,9 +30,7 @@ pub fn spawn_grid_window(close_msg: Receiver<()>) {
     thread::spawn(move || unsafe {
         let hInstance = GetModuleHandleW(ptr::null());
 
-        let class_name = "Grout Zone Grid";
-        let mut class_name = class_name.encode_utf16().collect::<Vec<_>>();
-        class_name.push(0);
+        let class_name = str_to_wide!("Grout Zone Grid");
 
         let mut class = mem::zeroed::<WNDCLASSEXW>();
         class.cbSize = mem::size_of::<WNDCLASSEXW>() as u32;

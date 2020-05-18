@@ -24,6 +24,7 @@ use winapi::um::winuser::{
 
 use crate::autostart;
 use crate::config;
+use crate::str_to_wide;
 use crate::Message;
 use crate::CHANNEL;
 use crate::CONFIG;
@@ -38,9 +39,7 @@ pub unsafe fn spawn_sys_tray() {
     thread::spawn(|| {
         let hInstance = GetModuleHandleW(ptr::null());
 
-        let class_name = "Grout Tray";
-        let mut class_name = class_name.encode_utf16().collect::<Vec<_>>();
-        class_name.push(0);
+        let class_name = str_to_wide!("Grout Tray");
 
         let mut class = mem::zeroed::<WNDCLASSEXW>();
         class.cbSize = mem::size_of::<WNDCLASSEXW>() as u32;
@@ -120,21 +119,10 @@ unsafe fn show_popup_menu(hwnd: HWND) {
 
     let menu = CreatePopupMenu();
 
-    let about = "About...";
-    let mut about = about.encode_utf16().collect::<Vec<_>>();
-    about.push(0);
-
-    let auto_start = "Launch at startup";
-    let mut auto_start = auto_start.encode_utf16().collect::<Vec<_>>();
-    auto_start.push(0);
-
-    let open_config = "Open config";
-    let mut open_config = open_config.encode_utf16().collect::<Vec<_>>();
-    open_config.push(0);
-
-    let exit = "Exit";
-    let mut exit = exit.encode_utf16().collect::<Vec<_>>();
-    exit.push(0);
+    let mut about = str_to_wide!("About...");
+    let mut auto_start = str_to_wide!("Launch at startup");
+    let mut open_config = str_to_wide!("Open Config");
+    let mut exit = str_to_wide!("Exit");
 
     InsertMenuW(
         menu,
@@ -201,16 +189,14 @@ unsafe fn show_popup_menu(hwnd: HWND) {
 }
 
 unsafe fn show_about() {
-    let title = "About";
-    let mut title = title.encode_utf16().collect::<Vec<_>>();
-    title.push(0);
+    let mut title = str_to_wide!("About");
 
     let msg = format!(
         "Grout - v{}\n\nCopyright © 2020 Cory Forsstrom",
         env!("CARGO_PKG_VERSION")
     );
-    let mut msg = msg.encode_utf16().collect::<Vec<_>>();
-    msg.push(0);
+
+    let mut msg = str_to_wide!(msg);
 
     MessageBoxW(
         ptr::null_mut(),
@@ -263,16 +249,8 @@ unsafe extern "system" fn callback(
                         config_path.push("config.yml");
 
                         if config_path.exists() {
-                            let operation = "open";
-                            let mut operation = operation.encode_utf16().collect::<Vec<_>>();
-                            operation.push(0);
-
-                            let mut config_path = config_path
-                                .to_str()
-                                .unwrap()
-                                .encode_utf16()
-                                .collect::<Vec<_>>();
-                            config_path.push(0);
+                            let mut operation = str_to_wide!("open");
+                            let mut config_path = str_to_wide!(config_path.to_str().unwrap());
 
                             ShellExecuteW(
                                 hWnd,

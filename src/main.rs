@@ -50,6 +50,15 @@ pub enum Message {
     Exit,
 }
 
+#[macro_export]
+macro_rules! str_to_wide {
+    ($str:expr) => {{
+        let mut w_str = $str.encode_utf16().collect::<Vec<_>>();
+        w_str.push(0);
+        w_str
+    }};
+}
+
 fn main() {
     let receiver = &CHANNEL.1.clone();
     let sender = &CHANNEL.0.clone();

@@ -8,6 +8,8 @@ use winapi::um::winuser::{
     MONITOR_DEFAULTTONEAREST,
 };
 
+use crate::str_to_wide;
+
 /// x & y coordinates are relative to top left of screen
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Rect {
@@ -94,8 +96,7 @@ pub unsafe fn get_active_monitor_name() -> String {
 }
 
 pub unsafe fn report_and_exit(error_msg: &str) {
-    let mut error_msg = error_msg.encode_utf16().collect::<Vec<_>>();
-    error_msg.push(0);
+    let mut error_msg = str_to_wide!(error_msg);
 
     MessageBoxW(
         ptr::null_mut(),
