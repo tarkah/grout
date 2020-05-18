@@ -7,6 +7,8 @@ use winapi::shared::minwindef::HKEY;
 use winapi::um::winnt::{KEY_SET_VALUE, REG_OPTION_NON_VOLATILE, REG_SZ};
 use winapi::um::winreg::{RegCreateKeyExW, RegDeleteKeyValueW, RegSetValueExW, HKEY_CURRENT_USER};
 
+use crate::str_to_wide;
+
 pub unsafe fn toggle_autostart_registry_key(enabled: bool) {
     if let Some(mut app_path) = dirs::config_dir() {
         app_path.push("grout");
@@ -17,17 +19,9 @@ pub unsafe fn toggle_autostart_registry_key(enabled: bool) {
                 let _ = fs::copy(current_path, &app_path);
             }
 
-            let app_path = app_path.to_str().unwrap_or_default();
-            let mut app_path = app_path.encode_utf16().collect::<Vec<_>>();
-            app_path.push(0);
-
-            let key_name = "Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-            let mut key_name = key_name.encode_utf16().collect::<Vec<_>>();
-            key_name.push(0);
-
-            let value_name = "grout";
-            let mut value_name = value_name.encode_utf16().collect::<Vec<_>>();
-            value_name.push(0);
+            let app_path = str_to_wide!(app_path.to_str().unwrap_or_default());
+            let mut key_name = str_to_wide!("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+            let mut value_name = str_to_wide!("grout");
 
             let mut key: HKEY = mem::zeroed();
 
