@@ -12,7 +12,7 @@ pub use grid::spawn_grid_window;
 mod preview;
 pub use preview::spawn_preview_window;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Window(pub HWND);
 
 unsafe impl Send for Window {}

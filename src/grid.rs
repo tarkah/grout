@@ -154,9 +154,7 @@ impl Grid {
         self.cursor_down = false;
         self.selected_tile = None;
         self.hovered_tile = None;
-        self.active_window = None;
         self.grid_window = None;
-        self.previous_resize = None;
         self.quick_resize = false;
 
         self.tiles.iter_mut().for_each(|row| {
@@ -413,6 +411,18 @@ impl Grid {
         }
 
         self.selected_tile != previously_selected
+    }
+
+    pub unsafe fn get_max_area(&self) -> Rect {
+        let from_zone = self.zone_area(0, 0);
+        let to_zone = self.zone_area(self.rows() - 1, self.columns() - 1);
+
+        Rect {
+            x: from_zone.x,
+            y: from_zone.y,
+            width: (to_zone.x + to_zone.width) - from_zone.x,
+            height: (to_zone.y + to_zone.height) - from_zone.y,
+        }
     }
 
     pub unsafe fn selected_area(&mut self) -> Option<Rect> {

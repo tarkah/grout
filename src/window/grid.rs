@@ -204,11 +204,7 @@ unsafe extern "system" fn callback(
                     if grid.previous_resize != Some((active_window, rect)) {
                         ShowWindow(active_window.0, SW_RESTORE);
 
-                        let border_adj = active_window.transparent_border();
-
-                        rect.x -= border_adj.0;
-                        rect.width += border_adj.0 * 2;
-                        rect.height += border_adj.1;
+                        rect.adjust_for_border(active_window.transparent_border());
 
                         active_window.set_pos(rect, None);
 

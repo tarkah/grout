@@ -11,10 +11,11 @@ use crate::common::report_and_exit;
 use crate::Message;
 use crate::CHANNEL;
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum HotkeyType {
     Main,
     QuickResize,
+    Maximize,
 }
 
 pub fn spawn_hotkey_thread(hotkey_str: &str, hotkey_type: HotkeyType) {

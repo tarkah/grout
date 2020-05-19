@@ -19,6 +19,9 @@ hotkey: CTRL+ALT+S
 # Hotkey to activate grid for a quick resize. Grid will automatically close after resize operation.
 #hotkey_quick_resize: CTRL+ALT+Q
 
+# Hotkey to maximize / restore the active window
+#hotkey_maximize_toggle: CTRL+ALT+X
+
 # Automatically launch program on startup
 auto_start: false
 ";
@@ -99,6 +102,7 @@ pub struct Config {
     pub window_padding: u8,
     pub hotkey: String,
     pub hotkey_quick_resize: Option<String>,
+    pub hotkey_maximize_toggle: Option<String>,
     pub auto_start: bool,
 }
 
@@ -109,6 +113,7 @@ impl Default for Config {
             window_padding: 10,
             hotkey: "CTRL+ALT+S".to_string(),
             hotkey_quick_resize: None,
+            hotkey_maximize_toggle: None,
             auto_start: false,
         }
     }
