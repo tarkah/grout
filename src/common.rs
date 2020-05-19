@@ -36,6 +36,12 @@ impl Rect {
             height: 0,
         }
     }
+
+    pub fn adjust_for_border(&mut self, border: (i32, i32)) {
+        self.x -= border.0;
+        self.width += border.0 * 2;
+        self.height += border.1;
+    }
 }
 
 impl Display for Rect {

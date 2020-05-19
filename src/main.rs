@@ -129,16 +129,13 @@ fn main() {
                                 grid.active_window = Some(active_window);
                                 active_window
                             };
+
                             let active_rect = active_window.rect();
 
                             ShowWindow(active_window.0, SW_RESTORE);
 
-                            let border_adj = active_window.transparent_border();
-
                             let mut max_rect = grid.get_max_area();
-                            max_rect.x -= border_adj.0;
-                            max_rect.width += border_adj.0 * 2;
-                            max_rect.height += border_adj.1;
+                            max_rect.adjust_for_border(active_window.transparent_border());
 
                             if let Some((_, previous_rect)) = grid.previous_resize {
                                 if active_rect == max_rect {
