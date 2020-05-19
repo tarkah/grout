@@ -154,9 +154,7 @@ impl Grid {
         self.cursor_down = false;
         self.selected_tile = None;
         self.hovered_tile = None;
-        self.active_window = None;
         self.grid_window = None;
-        self.previous_resize = None;
         self.quick_resize = false;
 
         self.tiles.iter_mut().for_each(|row| {

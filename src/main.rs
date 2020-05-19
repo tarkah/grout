@@ -8,8 +8,8 @@ use crossbeam_channel::{bounded, select, unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
 
 use winapi::um::winuser::{
-    GetForegroundWindow, SetForegroundWindow, ShowWindow, TrackMouseEvent, SW_SHOW, TME_LEAVE,
-    TRACKMOUSEEVENT,
+    GetForegroundWindow, SetForegroundWindow, ShowWindow, TrackMouseEvent, SW_RESTORE, SW_SHOW,
+    TME_LEAVE, TRACKMOUSEEVENT,
 };
 
 use crate::common::Rect;
@@ -120,24 +120,38 @@ fn main() {
                     }
                     Message::HotkeyPressed(hotkey_type) => unsafe {
                         if hotkey_type == HotkeyType::Maximize {
-                            if let Some(mut window) = Some(Window(GetForegroundWindow())) {
-                                let mut grid = GRID.lock().unwrap();
-                                let max_rect = grid.get_max_area();
-                                let window_rect = window.rect();
+                            let mut grid = GRID.lock().unwrap();
 
-                                if let Some((_, previous_rect)) = grid.previous_resize {
-                                    if window_rect == max_rect {
-                                        grid.previous_resize = Some((window, window_rect));
-                                        window.set_pos(previous_rect, None);
-                                    } else {
-                                        grid.previous_resize = Some((window, window_rect));
-                                        window.set_pos(max_rect, None);
-                                    }
+                            let mut active_window = if grid_window.is_some() {
+                                grid.active_window.unwrap()
+                            } else {
+                                let active_window = Window(GetForegroundWindow());
+                                grid.active_window = Some(active_window);
+                                active_window
+                            };
+                            let active_rect = active_window.rect();
+
+                            ShowWindow(active_window.0, SW_RESTORE);
+
+                            let border_adj = active_window.transparent_border();
+
+                            let mut max_rect = grid.get_max_area();
+                            max_rect.x -= border_adj.0;
+                            max_rect.width += border_adj.0 * 2;
+                            max_rect.height += border_adj.1;
+
+                            if let Some((_, previous_rect)) = grid.previous_resize {
+                                if active_rect == max_rect {
+                                    active_window.set_pos(previous_rect, None);
                                 } else {
-                                    grid.previous_resize = Some((window, window_rect));
-                                    window.set_pos(max_rect, None);
+                                    active_window.set_pos(max_rect, None);
                                 }
+                            } else {
+                                active_window.set_pos(max_rect, None);
                             }
+
+                            grid.previous_resize = Some((active_window, active_rect));
+
                         } else if preview_window.is_some() && grid_window.is_some() {
                             let _ = sender.send(Message::CloseWindows);
                         } else {
@@ -174,12 +188,14 @@ fn main() {
                         let mut grid = GRID.lock().unwrap();
 
                         let active_window = grid.active_window;
+                        let previous_resize = grid.previous_resize;
                         let quick_resize = grid.quick_resize;
 
                         *grid = Grid::from(&*CONFIG.lock().unwrap());
 
                         grid.grid_window = grid_window;
                         grid.active_window = active_window;
+                        grid.previous_resize = previous_resize;
                         grid.quick_resize = quick_resize;
 
                         grid.reposition();
@@ -193,12 +209,14 @@ fn main() {
                         let mut grid = GRID.lock().unwrap();
 
                         let active_window = grid.active_window;
+                        let previous_resize = grid.previous_resize;
                         let quick_resize = grid.quick_resize;
 
                         *grid = Grid::from(&*CONFIG.lock().unwrap());
 
                         grid.grid_window = grid_window;
                         grid.active_window = active_window;
+                        grid.previous_resize = previous_resize;
                         grid.quick_resize = quick_resize;
 
                         grid.reposition();
@@ -206,10 +224,12 @@ fn main() {
                     Message::InitializeWindows => {
                         let mut grid = GRID.lock().unwrap();
                         let quick_resize = grid.quick_resize;
+                        let previous_resize = grid.previous_resize;
 
                         *grid = Grid::from(&*CONFIG.lock().unwrap());
 
                         grid.quick_resize = quick_resize;
+                        grid.previous_resize = previous_resize;
 
                         spawn_grid_window(close_channel.1.clone());
                     }

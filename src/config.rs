@@ -19,6 +19,9 @@ hotkey: CTRL+ALT+S
 # Hotkey to activate grid for a quick resize. Grid will automatically close after resize operation.
 #hotkey_quick_resize: CTRL+ALT+Q
 
+# Hotkey to maximize / restore the active window
+#hotkey_maximize_toggle: CTRL+ALT+X
+
 # Automatically launch program on startup
 auto_start: false
 ";
