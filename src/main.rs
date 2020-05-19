@@ -77,6 +77,10 @@ fn main() {
         spawn_hotkey_thread(hotkey, HotkeyType::QuickResize);
     }
 
+    if let Some(hotkey_maximize) = &config.hotkey_maximize_toggle {
+        spawn_hotkey_thread(hotkey_maximize, HotkeyType::Maximize);
+    }
+
     unsafe {
         spawn_sys_tray();
     }
@@ -114,8 +118,27 @@ fn main() {
 
                         preview_window.set_pos(rect, Some(grid_window));
                     }
-                    Message::HotkeyPressed(hotkey_type) => {
-                        if preview_window.is_some() && grid_window.is_some() {
+                    Message::HotkeyPressed(hotkey_type) => unsafe {
+                        if hotkey_type == HotkeyType::Maximize {
+                            if let Some(mut window) = Some(Window(GetForegroundWindow())) {
+                                let mut grid = GRID.lock().unwrap();
+                                let max_rect = grid.get_max_area();
+                                let window_rect = window.rect();
+
+                                if let Some((_, previous_rect)) = grid.previous_resize {
+                                    if window_rect == max_rect {
+                                        grid.previous_resize = Some((window, window_rect));
+                                        window.set_pos(previous_rect, None);
+                                    } else {
+                                        grid.previous_resize = Some((window, window_rect));
+                                        window.set_pos(max_rect, None);
+                                    }
+                                } else {
+                                    grid.previous_resize = Some((window, window_rect));
+                                    window.set_pos(max_rect, None);
+                                }
+                            }
+                        } else if preview_window.is_some() && grid_window.is_some() {
                             let _ = sender.send(Message::CloseWindows);
                         } else {
                             let _ = sender.send(Message::InitializeWindows);

@@ -1,3 +1,4 @@
+use std::fmt::{Display, Error, Formatter};
 use std::mem;
 use std::process;
 use std::ptr;
@@ -34,6 +35,17 @@ impl Rect {
             width: 0,
             height: 0,
         }
+    }
+}
+
+impl Display for Rect {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        writeln!(f, "x: {}", self.x)?;
+        writeln!(f, "y: {}", self.y)?;
+        writeln!(f, "width: {}", self.width)?;
+        writeln!(f, "height: {}", self.height)?;
+
+        Ok(())
     }
 }
 
