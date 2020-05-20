@@ -32,13 +32,7 @@ lazy_static! {
     static ref CHANNEL: (Sender<Message>, Receiver<Message>) = unbounded();
     static ref CONFIG: Arc<Mutex<config::Config>> = Arc::new(Mutex::new(config::load_config()));
     static ref GRID: Arc<Mutex<Grid>> = Arc::new(Mutex::new(Grid::from(&*CONFIG.lock().unwrap())));
-    static ref ACTIVE_PROFILE: Arc<Mutex<String>> = 
-    
-    
-    
-    
-    
-    Arc::new(Mutex::new("Default".to_owned()));
+    static ref ACTIVE_PROFILE: Arc<Mutex<String>> = Arc::new(Mutex::new("Default".to_owned()));
 }
 
 pub enum Message {
