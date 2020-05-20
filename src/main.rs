@@ -1,5 +1,5 @@
 #![windows_subsystem = "windows"]
-#![allow(non_snake_case)]
+//#![allow(non_snake_case)]
 
 use std::mem;
 use std::sync::{Arc, Mutex};
