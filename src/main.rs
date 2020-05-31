@@ -1,18 +1,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 #![allow(non_snake_case)]
 
-use std::mem;
-use std::sync::{Arc, Mutex};
+use std::{
+    mem,
+    sync::{Arc, Mutex},
+};
 
 use crossbeam_channel::{bounded, select, unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
 
 use winapi::um::winuser::{
-    GetForegroundWindow, SetForegroundWindow, ShowWindow, TrackMouseEvent, SW_RESTORE, SW_SHOW,
-    TME_LEAVE, TRACKMOUSEEVENT,
+    SetForegroundWindow, ShowWindow, TrackMouseEvent, SW_SHOW, TME_LEAVE, TRACKMOUSEEVENT,
 };
 
-use crate::common::Rect;
+use crate::common::{get_foreground_window, Rect};
 use crate::event::{spawn_foreground_hook, spawn_track_monitor_thread};
 use crate::grid::Grid;
 use crate::hotkey::{spawn_hotkey_thread, HotkeyType};
@@ -53,9 +54,9 @@ pub enum Message {
 #[macro_export]
 macro_rules! str_to_wide {
     ($str:expr) => {{
-        let mut w_str = $str.encode_utf16().collect::<Vec<_>>();
-        w_str.push(0);
-        w_str
+        $str.encode_utf16()
+            .chain(std::iter::once(0))
+            .collect::<Vec<_>>()
     }};
 }
 
@@ -101,13 +102,13 @@ fn main() {
                         ShowWindow(grid_window.as_ref().unwrap().0, SW_SHOW);
                         SetForegroundWindow(grid_window.as_ref().unwrap().0);
                     }
-                    Message::GridWindow(window) => unsafe {
+                    Message::GridWindow(window) => {
                         grid_window = Some(window);
 
                         let mut grid = GRID.lock().unwrap();
 
                         grid.grid_window = Some(window);
-                        grid.active_window = Some(Window(GetForegroundWindow()));
+                        grid.active_window = Some(get_foreground_window());
 
                         spawn_track_monitor_thread(close_channel.1.clone());
                         spawn_preview_window(close_channel.1.clone());
@@ -118,21 +119,21 @@ fn main() {
 
                         preview_window.set_pos(rect, Some(grid_window));
                     }
-                    Message::HotkeyPressed(hotkey_type) => unsafe {
+                    Message::HotkeyPressed(hotkey_type) => {
                         if hotkey_type == HotkeyType::Maximize {
                             let mut grid = GRID.lock().unwrap();
 
                             let mut active_window = if grid_window.is_some() {
                                 grid.active_window.unwrap()
                             } else {
-                                let active_window = Window(GetForegroundWindow());
+                                let active_window = get_foreground_window();
                                 grid.active_window = Some(active_window);
                                 active_window
                             };
 
                             let active_rect = active_window.rect();
 
-                            ShowWindow(active_window.0, SW_RESTORE);
+                            active_window.restore();
 
                             let mut max_rect = grid.get_max_area();
                             max_rect.adjust_for_border(active_window.transparent_border());
@@ -181,7 +182,7 @@ fn main() {
                             grid.active_window = Some(window);
                         }
                     }
-                    Message::MonitorChange => unsafe {
+                    Message::MonitorChange => {
                         let mut grid = GRID.lock().unwrap();
 
                         let active_window = grid.active_window;
@@ -197,7 +198,7 @@ fn main() {
 
                         grid.reposition();
                     }
-                    Message::ProfileChange(profile) => unsafe {
+                    Message::ProfileChange(profile) => {
                         {
                             let mut active_profile = ACTIVE_PROFILE.lock().unwrap();
                             *active_profile = profile.to_owned();

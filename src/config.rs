@@ -1,4 +1,5 @@
-use std::fs;
+use std::fs::{create_dir_all, write, File};
+
 use std::io::Read;
 
 use regex::{Captures, Regex};
@@ -30,12 +31,12 @@ pub fn load_config() -> Config {
     if let Some(mut config_path) = dirs::config_dir() {
         config_path.push("grout");
         if !config_path.exists() {
-            let _ = fs::create_dir_all(&config_path);
+            let _ = create_dir_all(&config_path);
         }
 
         config_path.push("config.yml");
         if !config_path.exists() {
-            let _ = fs::write(&config_path, EXAMPLE_CONFIG);
+            let _ = write(&config_path, EXAMPLE_CONFIG);
         }
 
         let mut config = config::Config::default();
@@ -56,10 +57,12 @@ pub fn toggle_autostart() {
         config_path.push("grout");
         config_path.push("config.yml");
 
-        if let Ok(mut config) = fs::File::open(&config_path) {
+        if let Ok(mut config) = File::open(&config_path) {
             let mut config_str = String::new();
 
-            let _ = config.read_to_string(&mut config_str);
+            config
+                .read_to_string(&mut config_str)
+                .expect("Can not read config.");
 
             let re_line = Regex::new(r"(?m)^(auto_start:)(.*)$").unwrap();
             let updated_config = if let Some(cap) = re_line.captures_iter(&config_str).next() {
@@ -67,14 +70,10 @@ pub fn toggle_autostart() {
                     let re_cap =
                         Regex::new(r"(?m)^(y|Y|yes|Yes|YES|true|True|TRUE|on|On|ON)$").unwrap();
 
-                    let enabled = if re_cap.find(&cap[2].trim()).is_some() {
-                        "false"
-                    } else {
-                        "true"
-                    };
+                    let enabled = re_cap.find(&cap[2].trim());
 
                     let updated_config = re_line.replace(&config_str, |caps: &Captures| {
-                        format!("{} {}", &caps[1], enabled)
+                        format!("{} {}", &caps[1], enabled.is_some())
                     });
 
                     Some(updated_config.as_ref().to_owned())
@@ -91,7 +90,7 @@ pub fn toggle_autostart() {
                 format!("{}\n\nauto_start: true", config_str)
             };
 
-            let _ = fs::write(&config_path, updated_config);
+            write(&config_path, updated_config).expect("Can not write to config.");
         }
     }
 }

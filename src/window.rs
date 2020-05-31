@@ -2,7 +2,9 @@ use std::mem;
 use std::ptr;
 
 use winapi::shared::windef::HWND;
-use winapi::um::winuser::{GetWindowInfo, GetWindowRect, SetWindowPos, SWP_NOACTIVATE, WINDOWINFO};
+use winapi::um::winuser::{
+    GetWindowInfo, GetWindowRect, SetWindowPos, ShowWindow, SWP_NOACTIVATE, SW_RESTORE, WINDOWINFO,
+};
 
 use crate::common::Rect;
 
@@ -51,8 +53,8 @@ impl Window {
         info.into()
     }
 
-    pub unsafe fn transparent_border(self) -> (i32, i32) {
-        let info = self.info();
+    pub fn transparent_border(self) -> (i32, i32) {
+        let info = unsafe { self.info() };
 
         let x = {
             (info.window_rect.x - info.client_rect.x)
@@ -65,6 +67,12 @@ impl Window {
         };
 
         (x, y)
+    }
+
+    pub fn restore(&mut self) {
+        unsafe {
+            ShowWindow(self.0, SW_RESTORE);
+        };
     }
 }
 
