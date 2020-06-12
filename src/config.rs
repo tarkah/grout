@@ -73,7 +73,7 @@ pub fn toggle_autostart() {
                     let enabled = re_cap.find(&cap[2].trim());
 
                     let updated_config = re_line.replace(&config_str, |caps: &Captures| {
-                        format!("{} {}", &caps[1], enabled.is_some())
+                        format!("{} {}", &caps[1], !enabled.is_some())
                     });
 
                     Some(updated_config.as_ref().to_owned())
