@@ -5,9 +5,11 @@ use std::ptr;
 
 use winapi::shared::windef::{POINT, RECT};
 use winapi::um::winuser::{
-    GetCursorPos, GetMonitorInfoW, MessageBoxW, MonitorFromPoint, MB_OK, MONITORINFOEXW,
-    MONITOR_DEFAULTTONEAREST,
+    GetCursorPos, GetForegroundWindow, GetMonitorInfoW, MessageBoxW, MonitorFromPoint, MB_OK,
+    MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
 };
+
+use crate::window::Window;
 
 use crate::str_to_wide;
 
@@ -77,6 +79,11 @@ impl From<Rect> for RECT {
     }
 }
 
+pub fn get_foreground_window() -> Window {
+    let hwnd = unsafe { GetForegroundWindow() };
+    Window(hwnd)
+}
+
 pub unsafe fn get_work_area() -> Rect {
     let active_monitor = {
         let mut cursor_pos: POINT = mem::zeroed();
@@ -113,15 +120,20 @@ pub unsafe fn get_active_monitor_name() -> String {
     String::from_utf16_lossy(&info.szDevice)
 }
 
-pub unsafe fn report_and_exit(error_msg: &str) {
-    let mut error_msg = str_to_wide!(error_msg);
-
-    MessageBoxW(
-        ptr::null_mut(),
-        error_msg.as_mut_ptr(),
-        ptr::null_mut(),
-        MB_OK,
-    );
-
+pub fn report_and_exit(error_msg: &str) {
+    show_msg_box(error_msg);
     process::exit(1);
+}
+
+pub fn show_msg_box(message: &str) {
+    let mut message = str_to_wide!(message);
+
+    unsafe {
+        MessageBoxW(
+            ptr::null_mut(),
+            message.as_mut_ptr(),
+            ptr::null_mut(),
+            MB_OK,
+        );
+    }
 }

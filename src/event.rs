@@ -40,9 +40,7 @@ pub fn spawn_foreground_hook(close_msg: Receiver<()>) {
             };
 
             select! {
-                recv(close_msg) -> _ => {
-                    break;
-                }
+                recv(close_msg) -> _ => break,
                 default(Duration::from_millis(10)) => {}
             }
         }

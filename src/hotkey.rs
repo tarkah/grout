@@ -24,13 +24,11 @@ pub fn spawn_hotkey_thread(hotkey_str: &str, hotkey_type: HotkeyType) {
         .map(|s| s.trim().to_string())
         .collect();
 
-    if !(2..6).contains(&hotkey.len()) {
-        unsafe {
-            report_and_exit(&format!(
-                "Invalid hotkey <{}>: Combination must be between 2 to 5 keys long.",
-                hotkey_str
-            ));
-        }
+    if hotkey.len() < 2 || hotkey.len() > 5 {
+        report_and_exit(&format!(
+            "Invalid hotkey <{}>: Combination must be between 2 to 5 keys long.",
+            hotkey_str
+        ));
     }
 
     let virtual_key_char = hotkey.pop().unwrap().chars().next().unwrap();
@@ -70,10 +68,7 @@ fn compile_modifiers(activators: &[String], hotkey_str: &str) -> u32 {
             "CTRL" => code |= MOD_CONTROL as u32,
             "SHIFT" => code |= MOD_SHIFT as u32,
             "WIN" => code |= MOD_WIN as u32,
-
-            _ => unsafe {
-                report_and_exit(&format!("Invalid hotkey <{}>: Unidentified modifier in hotkey combination. Valid modifiers are CTRL, ALT, SHIFT, WIN.", hotkey_str))
-            },
+            _ => report_and_exit(&format!("Invalid hotkey <{}>: Unidentified modifier in hotkey combination. Valid modifiers are CTRL, ALT, SHIFT, WIN.", hotkey_str))
         }
     }
     code

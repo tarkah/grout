@@ -190,8 +190,8 @@ impl Grid {
         (width, height)
     }
 
-    unsafe fn zone_area(&self, row: usize, column: usize) -> Rect {
-        let work_area = get_work_area();
+    fn zone_area(&self, row: usize, column: usize) -> Rect {
+        let work_area = unsafe { get_work_area() };
 
         let zone_width = (work_area.width
             - self.border_margins as i32 * 2
@@ -268,8 +268,8 @@ impl Grid {
         }
     }
 
-    pub unsafe fn reposition(&mut self) {
-        let work_area = get_work_area();
+    pub fn reposition(&mut self) {
+        let work_area = unsafe { get_work_area() };
         let dimensions = self.dimensions();
 
         let rect = Rect {
@@ -413,7 +413,7 @@ impl Grid {
         self.selected_tile != previously_selected
     }
 
-    pub unsafe fn get_max_area(&self) -> Rect {
+    pub fn get_max_area(&self) -> Rect {
         let from_zone = self.zone_area(0, 0);
         let to_zone = self.zone_area(self.rows() - 1, self.columns() - 1);
 
@@ -441,6 +441,12 @@ impl Grid {
         self.tiles
             .iter_mut()
             .for_each(|row| row.iter_mut().for_each(|tile| tile.hovered = false));
+    }
+
+    pub fn unselect_all_tiles(&mut self) {
+        self.tiles
+            .iter_mut()
+            .for_each(|row| row.iter_mut().for_each(|tile| tile.selected = false));
     }
 
     pub unsafe fn draw(&self, window: Window) {
