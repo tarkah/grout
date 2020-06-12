@@ -23,6 +23,7 @@ use winapi::um::winuser::{
 };
 
 use crate::autostart;
+use crate::common::show_msg_box;
 use crate::config;
 use crate::str_to_wide;
 use crate::Message;
@@ -236,12 +237,25 @@ unsafe extern "system" fn callback(
                     MODAL_SHOWN = false;
                 }
                 ID_AUTOSTART => {
-                    config::toggle_autostart();
+                    if let Err(e) = config::toggle_autostart() {
+                        show_msg_box(&format!(
+                            "Error while toggling autostart from system tray.\n\nErr: {}",
+                            e
+                        ))
+                    };
 
                     let mut config = CONFIG.lock().unwrap();
-                    *config = config::load_config();
+                    match config::load_config() {
+                        Ok(_config) => *config = _config,
+                        Err(e) => show_msg_box(&format!("Error loading config while toggling autostart from system tray. Check config file for formatting errors.\n\nErr: {}", e)),
+                    }
 
-                    autostart::toggle_autostart_registry_key(config.auto_start);
+                    if let Err(e) = autostart::toggle_autostart_registry_key(config.auto_start) {
+                        show_msg_box(&format!(
+                            "Error updating registry while toggling autostart from system tray.\n\nErr: {}",
+                            e
+                        ))
+                    };
                 }
                 ID_CONFIG => {
                     if let Some(mut config_path) = dirs::config_dir() {
