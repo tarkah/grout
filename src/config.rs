@@ -60,9 +60,7 @@ pub fn toggle_autostart() {
         if let Ok(mut config) = File::open(&config_path) {
             let mut config_str = String::new();
 
-            config
-                .read_to_string(&mut config_str)
-                .expect("Can not read config.");
+            let _ = config.read_to_string(&mut config_str);
 
             let re_line = Regex::new(r"(?m)^(auto_start:)(.*)$").unwrap();
             let updated_config = if let Some(cap) = re_line.captures_iter(&config_str).next() {
@@ -90,7 +88,7 @@ pub fn toggle_autostart() {
                 format!("{}\n\nauto_start: true", config_str)
             };
 
-            write(&config_path, updated_config).expect("Can not write to config.");
+            let _ = write(&config_path, updated_config);
         }
     }
 }
