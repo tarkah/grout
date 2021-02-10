@@ -81,7 +81,7 @@ unsafe fn add_icon(hwnd: HWND) {
         icon_bytes.as_ptr() as *mut _,
         icon_bytes.len() as u32,
         1,
-        0x00_030_000,
+        0x0003_0000,
         32,
         32,
         LR_DEFAULTCOLOR,
