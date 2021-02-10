@@ -9,9 +9,8 @@ use winapi::um::winuser::{
     MONITORINFOEXW, MONITOR_DEFAULTTONEAREST,
 };
 
-use crate::window::Window;
-
 use crate::str_to_wide;
+use crate::window::Window;
 
 /// x & y coordinates are relative to top left of screen
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -120,9 +119,9 @@ pub unsafe fn get_active_monitor_name() -> String {
     String::from_utf16_lossy(&info.szDevice)
 }
 
-pub fn report_and_exit(error_msg: &str) {
+pub fn report_and_exit(error_msg: &str) -> ! {
     show_msg_box(error_msg);
-    process::exit(1);
+    process::exit(1)
 }
 
 pub fn show_msg_box(message: &str) {

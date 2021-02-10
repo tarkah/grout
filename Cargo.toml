@@ -6,6 +6,7 @@ edition = "2018"
 
 
 [dependencies]
+anyhow = "1.0"
 crossbeam-channel = "0.4"
 config = { version = "0.10", default-features=false, features = ['yaml'] }
 dirs = "2.0"

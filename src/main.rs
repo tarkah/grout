@@ -2,10 +2,11 @@
 #![allow(non_snake_case)]
 
 use std::{
-    mem,
+    mem, result,
     sync::{Arc, Mutex},
 };
 
+use anyhow::Error;
 use crossbeam_channel::{bounded, select, unbounded, Receiver, Sender};
 use lazy_static::lazy_static;
 
@@ -13,7 +14,7 @@ use winapi::um::winuser::{
     SetForegroundWindow, ShowWindow, TrackMouseEvent, SW_SHOW, TME_LEAVE, TRACKMOUSEEVENT,
 };
 
-use crate::common::{get_foreground_window, Rect};
+use crate::common::{get_foreground_window, report_and_exit, show_msg_box, Rect};
 use crate::event::{spawn_foreground_hook, spawn_track_monitor_thread};
 use crate::grid::Grid;
 use crate::hotkey::{spawn_hotkey_thread, HotkeyType};
@@ -31,7 +32,12 @@ mod window;
 
 lazy_static! {
     static ref CHANNEL: (Sender<Message>, Receiver<Message>) = unbounded();
-    static ref CONFIG: Arc<Mutex<config::Config>> = Arc::new(Mutex::new(config::load_config()));
+    static ref CONFIG: Arc<Mutex<config::Config>> = {
+        match config::load_config() {
+            Ok(config) => Arc::new(Mutex::new(config)),
+            Err(e) => report_and_exit(&format!("Could not load config. Check config file for formatting errors and relaunch program.\n\nErr: {}", e)),
+        }
+    };
     static ref GRID: Arc<Mutex<Grid>> = Arc::new(Mutex::new(Grid::from(&*CONFIG.lock().unwrap())));
     static ref ACTIVE_PROFILE: Arc<Mutex<String>> = Arc::new(Mutex::new("Default".to_owned()));
 }
@@ -60,6 +66,8 @@ macro_rules! str_to_wide {
     }};
 }
 
+pub type Result<T> = result::Result<T, Error>;
+
 fn main() {
     let receiver = &CHANNEL.1.clone();
     let sender = &CHANNEL.0.clone();
@@ -69,7 +77,12 @@ fn main() {
     let config = CONFIG.lock().unwrap().clone();
 
     unsafe {
-        autostart::toggle_autostart_registry_key(config.auto_start);
+        if let Err(e) = autostart::toggle_autostart_registry_key(config.auto_start) {
+            show_msg_box(&format!(
+                "Error updating registry while toggling autostart from system tray.\n\nErr: {}",
+                e
+            ))
+        };
     }
 
     spawn_hotkey_thread(&config.hotkey, HotkeyType::Main);
