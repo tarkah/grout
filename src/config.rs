@@ -44,7 +44,7 @@ pub fn load_config() -> Result<Config> {
     }
 
     let mut config = config::Config::default();
-    config.merge(config::Config::try_from(&Config::default()).unwrap())?;
+    config.merge(config::Config::try_from(&Config::default())?)?;
 
     let file_config = config::File::from(config_path).format(config::FileFormat::Yaml);
 
